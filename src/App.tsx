@@ -9,6 +9,8 @@ import { FloatingButtons } from "./components/FloatingButtons";
 import VoiceInterface from "./components/VoiceInterface";
 import LiveChatWidget from "./components/LiveChatWidget";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./components/AppSidebar";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -63,45 +65,56 @@ const App = () => {
             }}
           >
             <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/memberships" element={<Memberships />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/team" element={<Team />} />
-                  <Route path="/legal" element={<Legal />} />
-                  <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/search" element={<DoctorSearch />} />
-                  <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
-                  <Route path="/book/:doctorId" element={<BookAppointment />} />
-                  <Route path="/booking-success" element={<BookingSuccess />} />
-                  <Route path="/demo" element={<DemoLogin />} />
-                  <Route path="/doctor" element={<DoctorDashboard />} />
-                  <Route path="/admin-access" element={<AdminAccess />} />
-                  <Route path="/bookings" element={<BookingHistory />} />
-                  <Route path="/dashboard" element={<PatientDashboard />} />
-                  <Route path="/verify-email" element={<EmailVerification />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-              
-              <FloatingButtons />
-              
-              {/* Real-time Enhancements */}
-              <VoiceInterface 
-                onSpeakingChange={setIsSpeaking}
-              />
-              
-              <Suspense fallback={null}>
-                <NotificationCenter />
-              </Suspense>
-              
-              <LiveChatWidget 
-                isOpen={showLiveChat}
-                onClose={() => setShowLiveChat(false)}
-              />
+              <SidebarProvider defaultOpen={false}>
+                <div className="flex min-h-screen w-full">
+                  <AppSidebar />
+                  
+                  <main className="flex-1 relative">
+                    {/* Mobile hamburger menu */}
+                    <SidebarTrigger className="fixed top-4 left-4 z-50 md:hidden bg-background border shadow-md rounded-md" />
+                    
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/memberships" element={<Memberships />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/team" element={<Team />} />
+                        <Route path="/legal" element={<Legal />} />
+                        <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
+                        <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/search" element={<DoctorSearch />} />
+                        <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
+                        <Route path="/book/:doctorId" element={<BookAppointment />} />
+                        <Route path="/booking-success" element={<BookingSuccess />} />
+                        <Route path="/demo" element={<DemoLogin />} />
+                        <Route path="/doctor" element={<DoctorDashboard />} />
+                        <Route path="/admin-access" element={<AdminAccess />} />
+                        <Route path="/bookings" element={<BookingHistory />} />
+                        <Route path="/dashboard" element={<PatientDashboard />} />
+                        <Route path="/verify-email" element={<EmailVerification />} />
+                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </main>
+                </div>
+                
+                <FloatingButtons />
+                
+                {/* Real-time Enhancements */}
+                <VoiceInterface 
+                  onSpeakingChange={setIsSpeaking}
+                />
+                
+                <Suspense fallback={null}>
+                  <NotificationCenter />
+                </Suspense>
+                
+                <LiveChatWidget 
+                  isOpen={showLiveChat}
+                  onClose={() => setShowLiveChat(false)}
+                />
+              </SidebarProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

@@ -2,7 +2,6 @@ import React from 'react';
 import { Heart, Users, Clock, Shield, MapPin, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import DoctorCard from '@/components/DoctorCard';
 import { useNavigate } from 'react-router-dom';
@@ -98,8 +97,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      
       {/* Hero Section */}
       <HeroSection />
 
