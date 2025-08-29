@@ -47,11 +47,18 @@ serve(async (req) => {
       .single();
     if (profileError || !profile) throw new Error("Failed to get user profile");
 
+    const originHeader = req.headers.get("origin");
+    const FRONTEND_BASE_URL = Deno.env.get("FRONTEND_BASE_URL") ?? "";
+    const frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    if (!frontendOrigin) {
+      throw new Error("FRONTEND_BASE_URL not configured and no Origin header present");
+    }
+
     const paymentData: Record<string, unknown> = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
-      return_url: `${req.headers.get("origin")}/memberships?status=success`,
-      cancel_url: `${req.headers.get("origin")}/memberships?status=cancelled`,
+      return_url: `${frontendOrigin}/memberships?status=success`,
+      cancel_url: `${frontendOrigin}/memberships?status=cancelled`,
       notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payfast-webhook`,
       amount: (amount / 100).toFixed(2),
       item_name: description,
