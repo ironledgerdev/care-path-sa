@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -104,10 +103,16 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/10">
                     <User className="h-4 w-4" />
-                    {profile.first_name || profile.email}
+                    Profile
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Profile Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to={getUserDashboardLink()} className="flex items-center gap-2">
                       <Settings className="h-4 w-4" />
@@ -118,7 +123,7 @@ const Header = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/bookings" className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        My Bookings
+                        Booking History
                       </Link>
                     </DropdownMenuItem>
                   )}
