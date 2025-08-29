@@ -35,6 +35,7 @@ const AdminAccess = lazy(() => import("./components/AdminAccess").then(module =>
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
@@ -104,6 +105,7 @@ const App = () => {
                         <Route path="/booking-history" element={<BookingHistory />} />
                         <Route path="/dashboard" element={<PatientDashboard />} />
                         <Route path="/verify-email" element={<EmailVerification />} />
+                        <Route path="/profile" element={<Profile />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
