@@ -45,44 +45,53 @@ const Header = () => {
   return (
     <header className="bg-card/95 backdrop-blur-sm border-b border-primary/20 sticky top-0 z-50 shadow-[var(--shadow-medical)]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+        {/* Logo Section - Full Width */}
+        <div className="flex items-center justify-center py-4 border-b border-primary/10">
           <Link 
             to="/" 
-            className="flex items-center space-x-3 hover:scale-105 transition-transform duration-300 group"
+            className="flex items-center space-x-4 hover:scale-105 transition-all duration-500 group"
           >
-            <div className="medical-icon p-2 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-              <MapPin className="h-8 w-8 text-primary" />
+            <div className="medical-icon p-3 bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all duration-300 group-hover:rotate-6">
+              <MapPin className="h-10 w-10 text-primary" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-medical-gradient">IronLedgerMedMap</span>
-              <span className="text-xs text-muted-foreground">Find. Book. Heal.</span>
+            <div className="flex flex-col text-center">
+              <span className="text-3xl md:text-4xl font-bold text-medical-gradient tracking-wide">
+                IronLedgerMedMap
+              </span>
+              <span className="text-sm text-muted-foreground font-medium tracking-wider">
+                Find. Book. Heal.
+              </span>
             </div>
           </Link>
+        </div>
 
+        {/* Navigation Section */}
+        <div className="flex items-center justify-between py-3">
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:scale-105 ${
-                  isActive(item.path)
-                    ? 'text-primary bg-primary/10 shadow-sm'
-                    : 'text-foreground hover:text-primary hover:bg-primary/5'
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center justify-center flex-1">
+            <div className="flex items-center space-x-1 bg-muted/30 rounded-full p-1">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
+                    isActive(item.path)
+                      ? 'text-primary-foreground bg-primary shadow-lg shadow-primary/25'
+                      : 'text-foreground hover:text-primary hover:bg-primary/10'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
           </nav>
 
           {/* CTA Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {user && profile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
+                  <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/10">
                     <User className="h-4 w-4" />
                     {profile.first_name || profile.email}
                   </Button>
@@ -113,13 +122,13 @@ const Header = () => {
               <>
                 <Button 
                   variant="outline" 
-                  className="btn-medical-secondary"
+                  className="btn-medical-secondary hover:scale-105 transition-transform duration-200"
                   onClick={() => setAuthModalOpen(true)}
                 >
                   Doctor Portal
                 </Button>
                 <Button 
-                  className="btn-medical-primary"
+                  className="btn-medical-primary hover:scale-105 transition-transform duration-200"
                   onClick={() => setAuthModalOpen(true)}
                 >
                   Book Now
@@ -134,7 +143,7 @@ const Header = () => {
               variant="ghost"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-primary"
+              className="text-primary hover:bg-primary/10"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
