@@ -27,6 +27,7 @@ const Team = () => {
       name: 'Steve Thabethe',
       role: 'Director of Marketing',
       icon: <TrendingUp className="h-6 w-6" />,
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F5b8e901410a840c58eba4a41a7f85103?format=webp&width=800',
       description: 'Creative marketing strategist driving brand awareness and user acquisition across South Africa. Expert in digital marketing and brand positioning.',
       gradient: 'from-green-500 to-green-600',
       expertise: ['Digital Marketing', 'Brand Strategy', 'User Acquisition', 'Content Strategy']
