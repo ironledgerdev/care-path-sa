@@ -157,6 +157,12 @@ export const DoctorEnrollmentForm = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {!user && (
+                <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                  To submit your application, please create an account or log in.
+                  <Button variant="link" className="p-0 ml-1" onClick={() => window.dispatchEvent(new Event('openAuthModal'))}>Open sign in</Button>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Practice Information */}
                 <div className="grid md:grid-cols-2 gap-6">
