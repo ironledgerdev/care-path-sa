@@ -23,6 +23,13 @@ const DoctorSearch = lazy(() => import("./pages/DoctorSearch"));
 const DoctorProfile = lazy(() => import("./pages/DoctorProfile"));
 const BookAppointment = lazy(() => import("./pages/BookAppointment"));
 const BookingSuccess = lazy(() => import("./pages/BookingSuccess"));
+const BookAppointments = lazy(() => import("./pages/BookAppointments"));
+const Telemedicine = lazy(() => import("./pages/Telemedicine"));
+const DoctorPortal = lazy(() => import("./pages/DoctorPortal"));
+const PracticeManagement = lazy(() => import("./pages/PracticeManagement"));
+const Support = lazy(() => import("./pages/Support"));
+const Careers = lazy(() => import("./pages/Careers"));
+const Contact = lazy(() => import("./pages/Contact"));
 const DemoLogin = lazy(() => import("./pages/DemoLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
@@ -73,6 +80,13 @@ const App = () => {
                         <Route path="/team" element={<Team />} />
                         <Route path="/legal" element={<Legal />} />
                         <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
+                        <Route path="/book-appointments" element={<BookAppointments />} />
+                        <Route path="/telemedicine" element={<Telemedicine />} />
+                        <Route path="/doctor-portal" element={<DoctorPortal />} />
+                        <Route path="/practice-management" element={<PracticeManagement />} />
+                        <Route path="/support" element={<Support />} />
+                        <Route path="/careers" element={<Careers />} />
+                        <Route path="/contact" element={<Contact />} />
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/search" element={<DoctorSearch />} />
                         <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
