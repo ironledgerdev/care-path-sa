@@ -130,21 +130,12 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  className="btn-medical-secondary hover:scale-105 transition-transform duration-200"
-                  onClick={() => setAuthModalOpen(true)}
-                >
-                  Doctor Portal
-                </Button>
-                <Button 
-                  className="btn-medical-primary hover:scale-105 transition-transform duration-200"
-                  onClick={() => setAuthModalOpen(true)}
-                >
-                  Log In
-                </Button>
-              </>
+              <Button 
+                className="btn-medical-primary hover:scale-105 transition-transform duration-200"
+                onClick={() => setAuthModalOpen(true)}
+              >
+                Log In
+              </Button>
             )}
           </div>
 
@@ -198,21 +189,12 @@ const Header = () => {
                     </Button>
                   </>
                 ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="btn-medical-secondary w-full"
-                      onClick={() => setAuthModalOpen(true)}
-                    >
-                      Doctor Portal
-                    </Button>
-                    <Button 
-                      className="btn-medical-primary w-full"
-                      onClick={() => setAuthModalOpen(true)}
-                    >
-                      Log In
-                    </Button>
-                  </>
+                  <Button 
+                    className="btn-medical-primary w-full"
+                    onClick={() => setAuthModalOpen(true)}
+                  >
+                    Log In
+                  </Button>
                 )}
               </div>
             </nav>

@@ -80,6 +80,15 @@ const HeroSection = () => {
                 {user && profile ? 'Start Booking Now' : 'Log In to Book'}
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="btn-medical-secondary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group border-2 border-white/30 text-white hover:bg-white/10"
+                onClick={handleJoinAsDoctor}
+              >
+                Join as Doctor
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
             </div>
 
             {/* Stats */}
