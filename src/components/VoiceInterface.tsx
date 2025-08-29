@@ -203,7 +203,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   // Show collapsed floating button when not expanded
   if (!isExpanded) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 left-4 z-50">
         <Button
           onClick={toggleExpanded}
           className={`w-14 h-14 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 ${
@@ -232,7 +232,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
         
         {/* Status tooltip */}
         {isConnected && (
-          <div className="absolute bottom-16 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded-lg animate-fade-in whitespace-nowrap">
+          <div className="absolute bottom-16 left-0 bg-black/80 text-white text-xs px-2 py-1 rounded-lg animate-fade-in whitespace-nowrap">
             {isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Connected'}
           </div>
         )}
@@ -242,7 +242,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
   // Show expanded interface
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-scale-in">
+    <div className="fixed bottom-4 left-4 z-50 animate-scale-in">
       <Card className="medical-hero-card w-80 shadow-2xl">
         <CardContent className="p-4">
           {/* Header */}
