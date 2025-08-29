@@ -119,7 +119,7 @@ serve(async (req) => {
     };
 
     // Add signature to payment data
-    const signature = await generateSignature(paymentData, PASSPHRASE);
+    const signature = generateSignature(paymentData, PASSPHRASE);
     const finalPaymentData = { ...paymentData, signature };
 
     console.log("Payment data prepared:", finalPaymentData);
