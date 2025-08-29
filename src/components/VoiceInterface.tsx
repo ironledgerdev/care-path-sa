@@ -203,10 +203,10 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   // Show collapsed floating button when not expanded
   if (!isExpanded) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 z-50">
         <Button
           onClick={toggleExpanded}
-          className={`w-16 h-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 ${
+          className={`w-14 h-14 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 ${
             isConnected 
               ? 'bg-green-600 hover:bg-green-700' 
               : 'bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
@@ -214,25 +214,25 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
           disabled={isConnecting}
         >
           {isConnecting ? (
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
+            <Loader2 className="h-5 w-5 animate-spin text-white" />
           ) : isConnected ? (
             <div className="relative">
-              <Stethoscope className="h-6 w-6 text-white" />
+              <Stethoscope className="h-5 w-5 text-white" />
               {(isSpeaking || isListening) && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
               )}
             </div>
           ) : (
             <div className="flex flex-col items-center">
-              <Stethoscope className="h-6 w-6 text-white mb-1" />
-              <Heart className="h-3 w-3 text-red-300" />
+              <Stethoscope className="h-5 w-5 text-white mb-0.5" />
+              <Heart className="h-2.5 w-2.5 text-red-300" />
             </div>
           )}
         </Button>
         
         {/* Status tooltip */}
         {isConnected && (
-          <div className="absolute bottom-20 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded-lg animate-fade-in">
+          <div className="absolute bottom-16 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded-lg animate-fade-in whitespace-nowrap">
             {isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Connected'}
           </div>
         )}
@@ -242,7 +242,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
   // Show expanded interface
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
+    <div className="fixed bottom-4 right-4 z-50 animate-scale-in">
       <Card className="medical-hero-card w-80 shadow-2xl">
         <CardContent className="p-4">
           {/* Header */}
