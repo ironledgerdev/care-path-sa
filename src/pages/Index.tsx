@@ -5,8 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import DoctorCard from '@/components/DoctorCard';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   // Sample doctor data for demo
   const sampleDoctors = [
     {
@@ -120,8 +122,8 @@ const Index = () => {
           </div>
 
           <div className="text-center">
-            <Button className="btn-medical-primary">
-              View All Doctors
+              <Button className="btn-medical-primary" onClick={() => navigate('/search')}>
+                View All Doctors
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
