@@ -1,18 +1,39 @@
-// Suppress benign Chromium ResizeObserver error spam without affecting real errors
+// Suppress benign Chromium ResizeObserver console noise without hiding real errors
 // https://crbug.com/809574
-const MSG = 'ResizeObserver loop completed with undelivered notifications.';
+const MSGS = [
+  'ResizeObserver loop completed with undelivered notifications.',
+  'ResizeObserver loop limit exceeded'
+];
+
+function includesROMessage(input: unknown) {
+  const s = typeof input === 'string' ? input : (input as any)?.message;
+  return typeof s === 'string' && MSGS.some((m) => s.includes(m));
+}
 
 if (typeof window !== 'undefined') {
+  // Filter error events
   window.addEventListener('error', (event) => {
-    if (event?.message === MSG) {
+    if (includesROMessage(event?.message)) {
       event.stopImmediatePropagation();
     }
   });
 
+  // Filter unhandledrejection events
   window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-    const reason = (event?.reason && (event.reason.message || String(event.reason))) || '';
-    if (typeof reason === 'string' && reason.includes(MSG)) {
+    if (includesROMessage((event?.reason && (event.reason.message || String(event.reason))) || '')) {
       event.preventDefault();
     }
   });
+
+  // Patch console to drop only these specific messages
+  const origError = console.error;
+  const origWarn = console.warn;
+  console.error = (...args: any[]) => {
+    if (args.some(includesROMessage)) return;
+    origError.apply(console, args);
+  };
+  console.warn = (...args: any[]) => {
+    if (args.some(includesROMessage)) return;
+    origWarn.apply(console, args);
+  };
 }
