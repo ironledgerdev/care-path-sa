@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Md5 } from "https://deno.land/std@0.190.0/hash/md5.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,13 +18,45 @@ serve(async (req) => {
   try {
     const formData = await req.formData();
     const paymentData: Record<string, string> = {};
-    
+
     // Convert FormData to object
     for (const [key, value] of formData.entries()) {
       paymentData[key] = value.toString();
     }
 
     console.log("PayFast webhook data:", paymentData);
+
+    // Basic merchant validation
+    const MERCHANT_ID = Deno.env.get("PAYFAST_MERCHANT_ID") ?? "";
+    const MERCHANT_KEY = Deno.env.get("PAYFAST_MERCHANT_KEY") ?? "";
+    const PASSPHRASE = Deno.env.get("PAYFAST_PASSPHRASE") ?? "";
+
+    if (!MERCHANT_ID || !MERCHANT_KEY || !PASSPHRASE) {
+      console.error("PayFast credentials not configured in webhook env");
+      return new Response("Missing credentials", { status: 500, headers: corsHeaders });
+    }
+
+    if (paymentData.merchant_id !== MERCHANT_ID || paymentData.merchant_key !== MERCHANT_KEY) {
+      console.error("Merchant credentials mismatch");
+      return new Response("Invalid merchant", { status: 400, headers: corsHeaders });
+    }
+
+    // Verify signature from PayFast
+    const signatureFromPF = paymentData.signature;
+    const dataForSig = Object.keys(paymentData)
+      .filter((k) => k !== "signature" && paymentData[k] !== "" && paymentData[k] !== undefined && paymentData[k] !== null)
+      .sort()
+      .map((k) => `${k}=${encodeURIComponent(paymentData[k])}`)
+      .join("&");
+    const stringToHash = `${dataForSig}&passphrase=${encodeURIComponent(PASSPHRASE)}`;
+    const md5 = new Md5();
+    md5.update(stringToHash);
+    const expectedSignature = md5.toString();
+
+    if (!signatureFromPF || signatureFromPF.toLowerCase() !== expectedSignature.toLowerCase()) {
+      console.error("Invalid signature", { signatureFromPF, expectedSignature });
+      return new Response("Invalid signature", { status: 400, headers: corsHeaders });
+    }
 
     // Verify the payment status
     const paymentStatus = paymentData.payment_status;
@@ -41,6 +74,23 @@ serve(async (req) => {
       console.log("Payment completed successfully");
 
       if (customStr3 === 'booking_payment') {
+        // Optional: validate amount matches booking
+        const { data: bookingRow, error: bookingFetchError } = await supabase
+          .from('bookings')
+          .select('total_amount')
+          .eq('id', customStr1)
+          .single();
+        if (bookingFetchError) {
+          console.error("Failed to fetch booking for validation:", bookingFetchError);
+        } else {
+          const expectedCents = bookingRow?.total_amount ?? 0;
+          const paidCents = Math.round(parseFloat(paymentData.amount || '0') * 100);
+          if (expectedCents > 0 && paidCents !== expectedCents) {
+            console.error("Amount mismatch", { expectedCents, paidCents });
+            return new Response("Amount mismatch", { status: 400, headers: corsHeaders });
+          }
+        }
+
         // Handle booking payment
         const { error: bookingError } = await supabase
           .from('bookings')
@@ -81,7 +131,7 @@ serve(async (req) => {
             is_active: true,
             current_period_start: startDate.toISOString(),
             current_period_end: endDate.toISOString(),
-            free_bookings_remaining: 3, // Reset free bookings
+            free_bookings_remaining: 3,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', customStr2);
@@ -130,7 +180,7 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("PayFast webhook error:", error.message);
-    
+
     return new Response(
       JSON.stringify({
         error: error.message

@@ -60,7 +60,7 @@ const About = () => {
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 animate-slide-in-up">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-6">
             <Heart className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">About IronLedgerMedMap</span>
@@ -78,7 +78,7 @@ const About = () => {
         </div>
 
         {/* Mission Statement */}
-        <Card className="medical-hero-card mb-16 max-w-4xl mx-auto">
+        <Card className="medical-hero-card mb-16 max-w-4xl mx-auto animate-fade-in-scale">
           <CardContent className="p-8 text-center">
             <Award className="h-12 w-12 text-primary mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-medical-gradient mb-4">Our Mission</h2>
@@ -91,17 +91,17 @@ const About = () => {
         </Card>
 
         {/* Solutions Section */}
-        <div className="mb-16">
+        <div className="mb-16 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-3xl font-bold text-center text-medical-gradient mb-12">
             Solutions We Provide
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {solutions.map((solution) => (
-              <Card key={solution.title} className="medical-hero-card">
+              <Card key={solution.title} className="medical-hero-card animate-fade-in-scale">
                 <CardContent className="p-8">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary glow-medical">
                       {solution.icon}
                     </div>
                     <h3 className="text-2xl font-bold text-medical-gradient">
@@ -124,7 +124,7 @@ const About = () => {
         </div>
 
         {/* Values Section */}
-        <div className="mb-16">
+        <div className="mb-16 animate-slide-in-up" style={{ animationDelay: '0.15s' }}>
           <h2 className="text-3xl font-bold text-center text-medical-gradient mb-12">
             Our Core Values
           </h2>
@@ -145,10 +145,10 @@ const About = () => {
         </div>
 
         {/* South African Focus */}
-        <Card className="medical-hero-card max-w-4xl mx-auto">
+        <Card className="medical-hero-card max-w-4xl mx-auto animate-fade-in-scale" style={{ animationDelay: '0.2s' }}>
           <CardContent className="p-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full mx-auto mb-6 flex items-center justify-center pulse-medical">
                 <MapPin className="h-8 w-8 text-white" />
               </div>
               

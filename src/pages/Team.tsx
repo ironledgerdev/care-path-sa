@@ -10,6 +10,7 @@ const Team = () => {
       name: 'Ofentse Mashau',
       role: 'Founder & CEO',
       icon: <Crown className="h-6 w-6" />,
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F367b8b1b56084f9b8f9f2ed827964001?format=webp&width=800',
       description: 'Visionary leader with extensive experience in healthcare technology and business strategy. Passionate about transforming South African healthcare through innovation.',
       gradient: 'from-primary to-primary-soft',
       expertise: ['Strategic Leadership', 'Healthcare Innovation', 'Business Development', 'Technology Vision']
@@ -26,6 +27,7 @@ const Team = () => {
       name: 'Steve Thabethe',
       role: 'Director of Marketing',
       icon: <TrendingUp className="h-6 w-6" />,
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F5b8e901410a840c58eba4a41a7f85103?format=webp&width=800',
       description: 'Creative marketing strategist driving brand awareness and user acquisition across South Africa. Expert in digital marketing and brand positioning.',
       gradient: 'from-green-500 to-green-600',
       expertise: ['Digital Marketing', 'Brand Strategy', 'User Acquisition', 'Content Strategy']
@@ -34,6 +36,8 @@ const Team = () => {
       name: 'Sakhile Mabaso',
       role: 'Director of Customer Service',
       icon: <Phone className="h-6 w-6" />,
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F0486c5972e4f4e07aa15aeb1f4a7650a?format=webp&width=800',
+      imagePosition: 'top',
       description: 'Customer experience champion ensuring every interaction exceeds expectations. Dedicated to building trust and satisfaction among our community.',
       gradient: 'from-purple-500 to-purple-600',
       expertise: ['Customer Experience', 'Support Operations', 'Relationship Management', 'Service Excellence']
@@ -104,10 +108,19 @@ const Team = () => {
             <Card key={member.name} className="medical-hero-card hover:scale-105 transition-all duration-500">
               <CardContent className="p-8">
                 <div className="flex items-start gap-6">
-                  {/* Avatar placeholder with gradient */}
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${member.gradient} flex items-center justify-center text-white flex-shrink-0`}>
-                    {member.icon}
-                  </div>
+                  {/* Avatar photo if provided, else gradient placeholder */}
+                  {('image' in member && (member as any).image) ? (
+                    <img
+                      src={(member as any).image}
+                      alt={member.name}
+                      className={`w-20 h-20 rounded-2xl object-cover ${('imagePosition' in (member as any) && (member as any).imagePosition === 'top') ? 'object-top' : 'object-center'} ring-2 ring-primary/30 flex-shrink-0`}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${member.gradient} flex items-center justify-center text-white flex-shrink-0`}>
+                      {member.icon}
+                    </div>
+                  )}
                   
                   <div className="flex-1">
                     <h3 className="text-2xl font-bold text-medical-gradient mb-1">

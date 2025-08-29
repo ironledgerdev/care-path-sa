@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Md5 } from "https://deno.land/std@0.190.0/hash/md5.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,58 +79,55 @@ serve(async (req) => {
       throw new Error("Failed to get user profile");
     }
 
+    // Determine frontend origin for return/cancel URLs
+    const originHeader = req.headers.get("origin");
+    const FRONTEND_BASE_URL = Deno.env.get("FRONTEND_BASE_URL") ?? "";
+    const frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    if (!frontendOrigin) {
+      throw new Error("FRONTEND_BASE_URL not configured and no Origin header present");
+    }
+
     // PayFast payment data
     const paymentData = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
-      return_url: `${req.headers.get("origin")}/booking-success?booking_id=${booking_id}`,
-      cancel_url: `${req.headers.get("origin")}/booking-cancelled?booking_id=${booking_id}`,
+      return_url: `${frontendOrigin}/booking-success?booking_id=${booking_id}`,
+      cancel_url: `${frontendOrigin}/booking-cancelled?booking_id=${booking_id}`,
       notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payfast-webhook`,
-      
+
       // Payment details
       amount: (amount / 100).toFixed(2), // Convert from cents to rands
       item_name: description,
       item_description: `Appointment with ${doctor_name} on ${appointment_date} at ${appointment_time}`,
-      
+
       // Customer details
       name_first: profile.first_name || '',
       name_last: profile.last_name || '',
       email_address: profile.email,
-      
+
       // Custom fields
       custom_str1: booking_id,
       custom_str2: user.id,
       custom_str3: 'booking_payment',
     };
 
-    // Generate signature for PayFast
-    const generateSignature = (data: any, passphrase: string) => {
-      // Create parameter string
+    // Generate signature for PayFast (MD5 of paramString + optional passphrase)
+    const generateSignature = (data: Record<string, unknown>, passphrase: string) => {
       const paramString = Object.keys(data)
-        .filter(key => data[key] !== '' && data[key] !== null && data[key] !== undefined)
+        .filter((key) => data[key] !== '' && data[key] !== null && data[key] !== undefined)
         .sort()
-        .map(key => `${key}=${encodeURIComponent(data[key])}`)
+        .map((key) => `${key}=${encodeURIComponent(String(data[key]))}`)
         .join('&');
-      
-      // Add passphrase if provided
-      const stringToHash = passphrase ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}` : paramString;
-      
-      console.log("String to hash:", stringToHash);
-      
-      // Create MD5 hash
-      const encoder = new TextEncoder();
-      const data_buffer = encoder.encode(stringToHash);
-      
-      // Since Deno doesn't have crypto.createHash, we'll use Web Crypto API
-      // For MD5, we'll use a simple approach for PayFast compatibility
-      return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data_buffer)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-        .substring(0, 32); // Truncate to 32 chars to mimic MD5 length
+      const stringToHash = passphrase
+        ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}`
+        : paramString;
+      const md5 = new Md5();
+      md5.update(stringToHash);
+      return md5.toString();
     };
 
     // Add signature to payment data
-    const signature = await generateSignature(paymentData, PASSPHRASE);
+    const signature = generateSignature(paymentData, PASSPHRASE);
     const finalPaymentData = { ...paymentData, signature };
 
     console.log("Payment data prepared:", finalPaymentData);

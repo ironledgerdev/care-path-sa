@@ -3,14 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { FloatingButtons } from "./components/FloatingButtons";
 import VoiceInterface from "./components/VoiceInterface";
 import LiveChatWidget from "./components/LiveChatWidget";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./components/AppSidebar";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -25,12 +23,19 @@ const DoctorSearch = lazy(() => import("./pages/DoctorSearch"));
 const DoctorProfile = lazy(() => import("./pages/DoctorProfile"));
 const BookAppointment = lazy(() => import("./pages/BookAppointment"));
 const BookingSuccess = lazy(() => import("./pages/BookingSuccess"));
-const DemoLogin = lazy(() => import("./pages/DemoLogin"));
+const BookAppointments = lazy(() => import("./pages/BookAppointments"));
+const Telemedicine = lazy(() => import("./pages/Telemedicine"));
+const DoctorPortal = lazy(() => import("./pages/DoctorPortal"));
+const PracticeManagement = lazy(() => import("./pages/PracticeManagement"));
+const Support = lazy(() => import("./pages/Support"));
+const Careers = lazy(() => import("./pages/Careers"));
+const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
@@ -65,17 +70,8 @@ const App = () => {
             }}
           >
             <ErrorBoundary>
-              <SidebarProvider defaultOpen={false}>
                 <div className="flex min-h-screen w-full">
-                  {/* Mobile-only sidebar */}
-                  <div className="md:hidden">
-                    <AppSidebar />
-                  </div>
-                  
                   <main className="flex-1 relative">
-                    {/* Mobile hamburger menu */}
-                    <SidebarTrigger className="fixed top-4 left-4 z-50 md:hidden bg-background border shadow-md rounded-md" />
-                    
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
                         <Route path="/" element={<Index />} />
@@ -84,40 +80,54 @@ const App = () => {
                         <Route path="/team" element={<Team />} />
                         <Route path="/legal" element={<Legal />} />
                         <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
+                        <Route path="/DoctorEnrollment" element={<Navigate to="/doctor-enrollment" replace />} />
+                        <Route path="/doctorEnrollment" element={<Navigate to="/doctor-enrollment" replace />} />
+                        <Route path="/book-appointments" element={<BookAppointments />} />
+                        <Route path="/BookAppointment" element={<Navigate to="/book-appointments" replace />} />
+                        <Route path="/book-appointment" element={<Navigate to="/book-appointments" replace />} />
+                        <Route path="/telemedicine" element={<Telemedicine />} />
+                        <Route path="/doctor-portal" element={<DoctorPortal />} />
+                        <Route path="/practice-management" element={<PracticeManagement />} />
+                        <Route path="/support" element={<Support />} />
+                        <Route path="/careers" element={<Careers />} />
+                        <Route path="/contact" element={<Contact />} />
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="/search" element={<DoctorSearch />} />
                         <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
                         <Route path="/book/:doctorId" element={<BookAppointment />} />
                         <Route path="/booking-success" element={<BookingSuccess />} />
-                        <Route path="/demo" element={<DemoLogin />} />
+                        <Route path="/BookingSuccess" element={<Navigate to="/booking-success" replace />} />
+                        <Route path="/bookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/doctor" element={<DoctorDashboard />} />
                         <Route path="/admin-access" element={<AdminAccess />} />
                         <Route path="/bookings" element={<BookingHistory />} />
+                        <Route path="/BookingHistory" element={<BookingHistory />} />
+                        <Route path="/booking-history" element={<BookingHistory />} />
                         <Route path="/dashboard" element={<PatientDashboard />} />
                         <Route path="/verify-email" element={<EmailVerification />} />
+                        <Route path="/profile" element={<Profile />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
                   </main>
                 </div>
-                
+
                 <FloatingButtons />
-                
+
                 {/* Real-time Enhancements */}
-                <VoiceInterface 
+                <VoiceInterface
                   onSpeakingChange={setIsSpeaking}
                 />
-                
+
                 <Suspense fallback={null}>
                   <NotificationCenter />
                 </Suspense>
-                
-                <LiveChatWidget 
+
+                <LiveChatWidget
                   isOpen={showLiveChat}
                   onClose={() => setShowLiveChat(false)}
                 />
-              </SidebarProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

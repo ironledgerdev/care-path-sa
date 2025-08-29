@@ -223,12 +223,12 @@ const DoctorSearch = () => {
               {/* Province */}
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={selectedProvince} onValueChange={setSelectedProvince}>
+                <Select value={selectedProvince || 'all'} onValueChange={(v) => setSelectedProvince(v === 'all' ? '' : v)}>
                   <SelectTrigger className="pl-10 h-12">
                     <SelectValue placeholder="Select province" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Provinces</SelectItem>
+                    <SelectItem value="all">All Provinces</SelectItem>
                     {provinces.map((province) => (
                       <SelectItem key={province} value={province}>
                         {province}
@@ -241,12 +241,12 @@ const DoctorSearch = () => {
               {/* Specialty */}
               <div className="relative">
                 <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                <Select value={selectedSpecialty || 'all'} onValueChange={(v) => setSelectedSpecialty(v === 'all' ? '' : v)}>
                   <SelectTrigger className="pl-10 h-12">
                     <SelectValue placeholder="Medical specialty" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Specialties</SelectItem>
+                    <SelectItem value="all">All Specialties</SelectItem>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
                         {specialty}
@@ -257,12 +257,12 @@ const DoctorSearch = () => {
               </div>
 
               {/* Price Range */}
-              <Select value={priceRange} onValueChange={setPriceRange}>
+              <Select value={priceRange || 'all'} onValueChange={(v) => setPriceRange(v === 'all' ? '' : v)}>
                 <SelectTrigger className="h-12">
                   <SelectValue placeholder="Price range" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Prices</SelectItem>
+                  <SelectItem value="all">All Prices</SelectItem>
                   {priceRanges.map((range) => (
                     <SelectItem key={range.label} value={range.label}>
                       {range.label}

@@ -95,50 +95,72 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
 
     setIsLoading(true);
     try {
-      // In a real implementation, you would:
-      // 1. Find or create a chat session between user and doctor
-      // 2. Load existing messages
-      // For now, we'll simulate this
+      // Try to find or create a persistent chat session
+      const { data: existing, error: sessionFindError } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('patient_id', user.id)
+        .eq('doctor_id', doctorId)
+        .eq('status', 'active')
+        .maybeSingle();
 
+      let session: ChatSession | null = existing as any;
+
+      if (!session) {
+        const { data: created, error: sessionCreateError } = await supabase
+          .from('chat_sessions')
+          .insert({ patient_id: user.id, doctor_id: doctorId, status: 'active' })
+          .select()
+          .single();
+        if (sessionCreateError) throw sessionCreateError;
+        session = created as any;
+      }
+
+      setCurrentSession(session);
+
+      // Load existing messages (latest 50)
+      const { data: msgs, error: msgsError } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (msgsError) throw msgsError;
+
+      setMessages((msgs as any[]).map((m) => ({
+        id: m.id,
+        sender_id: m.sender_id,
+        recipient_id: m.recipient_id,
+        message: m.message,
+        message_type: m.message_type,
+        is_read: m.is_read,
+        created_at: m.created_at,
+      })) as ChatMessage[]);
+
+    } catch (error) {
+      console.warn('Falling back to mock chat. Persistence not available:', error);
+      // Fallback mock session/messages
       const mockSession: ChatSession = {
         id: `session_${user.id}_${doctorId}`,
         patient_id: user.id,
         doctor_id: doctorId,
         status: 'active',
         created_at: new Date().toISOString(),
-        doctor_profile: {
-          first_name: 'Dr. Sarah',
-          last_name: 'Johnson'
-        }
       };
-
       const mockMessages: ChatMessage[] = [
         {
           id: '1',
           sender_id: doctorId,
           recipient_id: user.id,
-          message: 'Hello! I\'m Dr. Johnson. How can I help you today?',
+          message: 'Hello! I\'m your doctor. How can I help you today?',
           message_type: 'text',
           is_read: true,
           created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-          sender_profile: {
-            first_name: 'Dr. Sarah',
-            last_name: 'Johnson',
-            role: 'doctor'
-          }
         }
       ];
-
       setCurrentSession(mockSession);
       setMessages(mockMessages);
-
-    } catch (error) {
-      console.error('Error initializing chat:', error);
-      toast({
-        title: "Chat Error",
-        description: "Failed to initialize chat session",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -225,24 +247,29 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // In a real implementation, you would save the message to the database
-      // For now, we'll simulate a doctor response after a delay
+      // Attempt to persist message
+      if (currentSession?.id) {
+        await supabase.from('chat_messages').insert({
+          session_id: currentSession.id,
+          sender_id: user.id,
+          recipient_id: currentSession.doctor_id,
+          message: messageText,
+          message_type: 'text',
+          is_read: false,
+        });
+      }
+
+      // Simulated doctor reply (remove when real-time doctor responses are implemented)
       setTimeout(() => {
         const doctorResponse: ChatMessage = {
           id: `response_${Date.now()}`,
-          sender_id: currentSession.doctor_id,
+          sender_id: currentSession!.doctor_id,
           recipient_id: user.id,
           message: getDoctorResponse(messageText),
           message_type: 'text',
           is_read: false,
           created_at: new Date().toISOString(),
-          sender_profile: {
-            first_name: 'Dr. Sarah',
-            last_name: 'Johnson',
-            role: 'doctor'
-          }
         };
-
         setMessages(prev => [...prev, doctorResponse]);
       }, 2000);
 

@@ -94,7 +94,7 @@ const PatientDashboard = () => {
           doctors (
             practice_name,
             speciality,
-            profiles (
+            profiles:user_id (
               first_name,
               last_name
             )

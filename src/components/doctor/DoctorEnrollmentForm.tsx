@@ -28,6 +28,7 @@ export const DoctorEnrollmentForm = () => {
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const [applicant, setApplicant] = useState({ first_name: '', last_name: '', email: '' });
 
   const specialties = [
     'General Practitioner',
@@ -65,51 +66,44 @@ export const DoctorEnrollmentForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to submit an application.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('pending_doctors')
-        .insert({
-          user_id: user.id,
-          ...formData,
-          consultation_fee: parseInt(formData.consultation_fee) * 100, // Convert to cents
-          years_experience: parseInt(formData.years_experience),
-        });
-
-      if (error) throw error;
-
-      // Send pending doctor email
-      try {
-        await supabase.functions.invoke('send-email', {
-          body: {
-            type: 'doctor_pending',
-            data: {
-              doctor_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || 'Doctor',
-              doctor_email: user.email,
-              practice_name: formData.practice_name,
-              speciality: formData.speciality,
-              license_number: formData.license_number
-            }
-          }
-        });
-      } catch (emailError) {
-        console.error('Failed to send email:', emailError);
-        // Don't throw - we don't want to fail the application because of email issues
-      }
-
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
+      const { data, error } = await supabase.functions.invoke('submit-doctor-enrollment', {
+        body: {
+          form: formData,
+          applicant: user ? undefined : applicant
+        }
       });
+
+      if (error || !data?.success) {
+        // Fallback: if user is logged in, insert pending_doctors directly
+        if (user) {
+          const { error: insertError } = await supabase
+            .from('pending_doctors')
+            .insert({
+              user_id: user.id,
+              ...formData,
+              consultation_fee: parseInt(formData.consultation_fee) * 100,
+              years_experience: parseInt(formData.years_experience),
+            });
+          if (insertError) throw insertError;
+
+          toast({
+            title: 'Application Submitted',
+            description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
+          });
+        } else {
+          throw new Error(data?.error || error?.message || 'Edge Function unavailable');
+        }
+      } else {
+        toast({
+          title: "Application Submitted",
+          description: user ?
+            "Your application has been submitted for review. We'll contact you within 2-3 business days." :
+            "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
+        });
+      }
 
       // Reset form
       setFormData({
@@ -157,6 +151,26 @@ export const DoctorEnrollmentForm = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {!user && (
+                <div className="mb-4 p-4 rounded-lg bg-accent/50 border border-primary/20 text-sm space-y-3">
+                  <p className="text-foreground">Create your provider account and submit in one step:</p>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div>
+                      <Label>First name *</Label>
+                      <Input value={applicant.first_name} onChange={(e) => setApplicant({ ...applicant, first_name: e.target.value })} required />
+                    </div>
+                    <div>
+                      <Label>Last name *</Label>
+                      <Input value={applicant.last_name} onChange={(e) => setApplicant({ ...applicant, last_name: e.target.value })} required />
+                    </div>
+                    <div>
+                      <Label>Email *</Label>
+                      <Input type="email" value={applicant.email} onChange={(e) => setApplicant({ ...applicant, email: e.target.value })} required />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">We’ll send a verification link. After admin approval, you can log into the Doctor Portal.</p>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Practice Information */}
                 <div className="grid md:grid-cols-2 gap-6">

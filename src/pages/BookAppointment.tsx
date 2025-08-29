@@ -49,30 +49,73 @@ const BookAppointment = () => {
   const [selectedTime, setSelectedTime] = useState('');
   const [patientNotes, setPatientNotes] = useState('');
   const [isBooking, setIsBooking] = useState(false);
-
-  // Sample time slots - in real app, these would come from doctor's schedule
-  const timeSlots: TimeSlot[] = [
-    { time: '08:00', available: true },
-    { time: '08:30', available: false },
-    { time: '09:00', available: true },
-    { time: '09:30', available: true },
-    { time: '10:00', available: false },
-    { time: '10:30', available: true },
-    { time: '11:00', available: true },
-    { time: '11:30', available: true },
-    { time: '14:00', available: true },
-    { time: '14:30', available: true },
-    { time: '15:00', available: false },
-    { time: '15:30', available: true },
-    { time: '16:00', available: true },
-    { time: '16:30', available: true }
-  ];
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
   useEffect(() => {
     if (doctorId) {
       fetchDoctor();
     }
   }, [doctorId]);
+
+  // Load availability when date changes
+  useEffect(() => {
+    const loadAvailability = async () => {
+      if (!doctorId || !selectedDate) {
+        setTimeSlots([]);
+        return;
+      }
+      try {
+        const dateObj = new Date(selectedDate);
+        const jsDay = dateObj.getDay();
+        const dayOfWeek = jsDay === 0 ? 7 : jsDay; // 1=Mon ... 7=Sun
+
+        const { data: schedules, error: scheduleError } = await supabase
+          .from('doctor_schedules')
+          .select('*')
+          .eq('doctor_id', doctorId)
+          .eq('day_of_week', dayOfWeek)
+          .eq('is_available', true);
+        if (scheduleError) throw scheduleError;
+
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('appointment_time, status')
+          .eq('doctor_id', doctorId)
+          .eq('appointment_date', selectedDate)
+          .neq('status', 'cancelled');
+        if (bookingsError) throw bookingsError;
+
+        const takenTimes = new Set((bookings || []).map(b => b.appointment_time));
+
+        const slots: TimeSlot[] = [];
+        (schedules || []).forEach((s: any) => {
+          const start = s.start_time as string; // "HH:MM"
+          const end = s.end_time as string; // "HH:MM"
+          const toMinutes = (t: string) => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+          };
+          const toHHMM = (mins: number) => {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+          };
+          for (let m = toMinutes(start); m < toMinutes(end); m += 30) {
+            const t = toHHMM(m);
+            slots.push({ time: t, available: !takenTimes.has(t) });
+          }
+        });
+
+        const unique = new Map<string, TimeSlot>();
+        slots.sort((a,b) => a.time.localeCompare(b.time)).forEach(s => unique.set(s.time, s));
+        setTimeSlots(Array.from(unique.values()));
+      } catch (err) {
+        console.error('Failed to load availability', err);
+        setTimeSlots([]);
+      }
+    };
+    loadAvailability();
+  }, [doctorId, selectedDate]);
 
   const fetchDoctor = async () => {
     try {
@@ -133,34 +176,24 @@ const BookAppointment = () => {
 
     setIsBooking(true);
     try {
-      // Create booking record
-      const bookingFee = 1000; // R10 booking fee
-      const totalAmount = doctor.consultation_fee + bookingFee;
-
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
+      // Create booking via Edge Function (handles membership perks & double-booking)
+      const { data: createData, error: createError } = await supabase.functions.invoke('create-booking', {
+        body: {
           doctor_id: doctor.id,
           appointment_date: selectedDate,
           appointment_time: selectedTime,
-          patient_notes: patientNotes,
-          consultation_fee: doctor.consultation_fee,
-          booking_fee: bookingFee,
-          total_amount: totalAmount,
-          status: 'pending',
-          payment_status: 'pending'
-        })
-        .select()
-        .single();
+          patient_notes: patientNotes
+        }
+      });
 
-      if (bookingError) throw bookingError;
+      if (createError || !createData?.success) throw new Error(createError?.message || createData?.error || 'Failed to create booking');
+      const booking = createData.booking;
 
-      // Initialize PayFast payment
+      // Initialize PayFast payment using server-calculated amount
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
           booking_id: booking.id,
-          amount: totalAmount,
+          amount: booking.total_amount,
           description: `Consultation with Dr. ${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           doctor_name: `${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           appointment_date: selectedDate,
@@ -299,7 +332,7 @@ const BookAppointment = () => {
                 {!user && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                     <p className="text-amber-800 text-sm">
-                      Please <Button variant="link" className="p-0" onClick={() => navigate('/auth')}>sign in</Button> to book an appointment.
+                      Please <Button variant="link" className="p-0" onClick={() => window.dispatchEvent(new Event('openAuthModal'))}>sign in</Button> to book an appointment.
                     </p>
                   </div>
                 )}
@@ -387,7 +420,7 @@ const BookAppointment = () => {
                       </div>
                       <div className="flex justify-between">
                         <span>Booking Fee</span>
-                        <span>R10.00</span>
+                        <span>{formatCurrency(1000)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">

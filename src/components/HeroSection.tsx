@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ArrowRight, MapPin, Clock, Shield, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,9 +51,9 @@ const HeroSection = () => {
       <div className="absolute bottom-1/3 right-20 w-12 h-12 bg-primary/30 rounded-full blur-lg animate-float" style={{ animationDelay: '2s' }}></div>
 
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-screen py-20">
-          {/* Hero Content */}
-          <div className="text-center lg:text-left animate-slide-in-up">
+        <div className="flex flex-col items-center min-h-screen py-20 gap-8">
+          {/* Top Info */}
+          <div className="text-center animate-slide-in-up max-w-3xl">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full mb-6">
               <MapPin className="h-4 w-4 text-white" />
               <span className="text-sm font-medium text-white">South Africa's Leading Medical Platform</span>
@@ -66,59 +65,51 @@ const HeroSection = () => {
               <span className="block">Instantly</span>
             </h1>
 
-            <p className="text-xl lg:text-2xl text-white/90 mb-8 leading-relaxed max-w-2xl">
-              Connect with verified medical professionals across all 9 provinces of South Africa. 
+            <p className="text-xl lg:text-2xl text-white/90 leading-relaxed">
+              Connect with verified medical professionals across all 9 provinces of South Africa.
               Book appointments in minutes, not hours.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Button 
-                size="lg" 
-                className="btn-medical-primary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group"
-                onClick={handleStartBooking}
-              >
-                {user && profile ? 'Start Booking Now' : 'Log In to Book'}
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="btn-medical-secondary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group border-2 border-white/30 text-white hover:bg-white/10"
-                onClick={handleJoinAsDoctor}
-              >
-                Join as Doctor
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat, index) => (
-                <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-colors duration-300">
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-center text-primary-glow mb-2">
-                      {stat.icon}
-                    </div>
-                    <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-xs text-white/70">{stat.label}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           </div>
 
-          {/* Search Section */}
-          <div className="animate-fade-in-scale" style={{ animationDelay: '0.3s' }}>
-            <div className="mb-6 text-center">
-              <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-                Find Your Doctor Now
-              </h2>
-              <p className="text-white/80">
-                Advanced search across South Africa's largest medical network
-              </p>
-            </div>
-            
+          {/* Search across */}
+          <div className="w-full animate-fade-in-scale" style={{ animationDelay: '0.2s' }}>
             <SearchFilters />
+          </div>
+
+          {/* CTAs under search */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button
+              size="lg"
+              className="btn-medical-primary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group"
+              onClick={handleStartBooking}
+            >
+              {user && profile ? 'Start Booking Now' : 'Log In to Book'}
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="btn-medical-secondary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group border-2 border-white/30 text-white hover:bg-white/10"
+              onClick={handleJoinAsDoctor}
+            >
+              Join as Doctor
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl">
+            {stats.map((stat, index) => (
+              <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-colors duration-300">
+                <CardContent className="p-4 text-center">
+                  <div className="flex items-center justify-center text-primary-glow mb-2">
+                    {stat.icon}
+                  </div>
+                  <div className="text-2xl font-bold text-white">{stat.value}</div>
+                  <div className="text-xs text-white/70">{stat.label}</div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>

@@ -102,7 +102,7 @@ const SearchFilters = ({ onSearch, initialFilters }: SearchFiltersProps) => {
   };
 
   return (
-    <Card className="medical-search w-full max-w-6xl mx-auto">
+    <Card className="medical-search w-full mx-auto">
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Doctor/Clinic Name Search */}

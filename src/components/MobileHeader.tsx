@@ -81,6 +81,11 @@ export function MobileHeader() {
                 </div>
                 <DropdownMenuSeparator />
                 
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile Settings</span>
+                </DropdownMenuItem>
+
                 {profile?.role === 'patient' && (
                   <>
                     <DropdownMenuItem onClick={() => navigate('/dashboard')}>
@@ -89,7 +94,7 @@ export function MobileHeader() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/bookings')}>
                       <Calendar className="mr-2 h-4 w-4" />
-                      <span>My Bookings</span>
+                      <span>Booking History</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -116,7 +121,7 @@ export function MobileHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={() => navigate('/demo')} size="sm" className="btn-medical-primary">
+            <Button onClick={() => window.dispatchEvent(new Event('openAuthModal'))} size="sm" className="btn-medical-primary">
               Sign In
             </Button>
           )}

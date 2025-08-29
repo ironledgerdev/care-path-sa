@@ -2,9 +2,10 @@ import React from 'react';
 import { Heart, Users, Clock, Shield, MapPin, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import DoctorCard from '@/components/DoctorCard';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -97,6 +98,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       {/* Hero Section */}
       <HeroSection />
 
@@ -231,30 +233,30 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">For Patients</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li>Find Doctors</li>
-                <li>Book Appointments</li>
-                <li>Memberships</li>
-                <li>Telemedicine</li>
+                <li><Link to="/search" className="hover:text-primary">Find Doctors</Link></li>
+                <li><Link to="/book-appointments" className="hover:text-primary">Book Appointments</Link></li>
+                <li><Link to="/memberships" className="hover:text-primary">Memberships</Link></li>
+                <li><Link to="/telemedicine" className="hover:text-primary">Telemedicine</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">For Doctors</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li>Doctor Portal</li>
-                <li>Join Network</li>
-                <li>Practice Management</li>
-                <li>Support</li>
+                <li><Link to="/doctor-portal" className="hover:text-primary">Doctor Portal</Link></li>
+                <li><Link to="/doctor-enrollment" className="hover:text-primary">Join Network</Link></li>
+                <li><Link to="/practice-management" className="hover:text-primary">Practice Management</Link></li>
+                <li><Link to="/support" className="hover:text-primary">Support</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li>About Us</li>
-                <li>Meet the Team</li>
-                <li>Careers</li>
-                <li>Contact</li>
+                <li><Link to="/about" className="hover:text-primary">About Us</Link></li>
+                <li><Link to="/team" className="hover:text-primary">Meet the Team</Link></li>
+                <li><Link to="/careers" className="hover:text-primary">Careers</Link></li>
+                <li><Link to="/contact" className="hover:text-primary">Contact</Link></li>
               </ul>
             </div>
           </div>
