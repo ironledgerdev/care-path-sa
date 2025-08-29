@@ -9,8 +9,6 @@ import { FloatingButtons } from "./components/FloatingButtons";
 import VoiceInterface from "./components/VoiceInterface";
 import LiveChatWidget from "./components/LiveChatWidget";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./components/AppSidebar";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -65,17 +63,8 @@ const App = () => {
             }}
           >
             <ErrorBoundary>
-              <SidebarProvider defaultOpen={false}>
                 <div className="flex min-h-screen w-full">
-                  {/* Mobile-only sidebar */}
-                  <div className="md:hidden">
-                    <AppSidebar />
-                  </div>
-                  
                   <main className="flex-1 relative">
-                    {/* Mobile hamburger menu */}
-                    <SidebarTrigger className="fixed top-4 left-4 z-50 md:hidden bg-background border shadow-md rounded-md" />
-                    
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
                         <Route path="/" element={<Index />} />
@@ -101,23 +90,22 @@ const App = () => {
                     </Suspense>
                   </main>
                 </div>
-                
+
                 <FloatingButtons />
-                
+
                 {/* Real-time Enhancements */}
-                <VoiceInterface 
+                <VoiceInterface
                   onSpeakingChange={setIsSpeaking}
                 />
-                
+
                 <Suspense fallback={null}>
                   <NotificationCenter />
                 </Suspense>
-                
-                <LiveChatWidget 
+
+                <LiveChatWidget
                   isOpen={showLiveChat}
                   onClose={() => setShowLiveChat(false)}
                 />
-              </SidebarProvider>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
