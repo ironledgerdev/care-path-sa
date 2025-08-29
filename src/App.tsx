@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,32 +7,46 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { FloatingButtons } from "./components/FloatingButtons";
 import VoiceInterface from "./components/VoiceInterface";
-import EnhancedNotificationCenter from "./components/EnhancedNotificationCenter";
 import LiveChatWidget from "./components/LiveChatWidget";
-import Index from "./pages/Index";
-import Memberships from "./pages/Memberships";
-import About from "./pages/About";
-import Team from "./pages/Team";
-import Legal from "./pages/Legal";
-import DoctorEnrollment from "./pages/DoctorEnrollment";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import DoctorDashboard from "./pages/doctor/DoctorDashboard";
-import DoctorSearch from "./pages/DoctorSearch";
-import DoctorProfile from "./pages/DoctorProfile";
-import BookAppointment from "./pages/BookAppointment";
-import BookingSuccess from "./pages/BookingSuccess";
-import DemoLogin from "./pages/DemoLogin";
-import NotFound from "./pages/NotFound";
-import { AdminAccess } from "./components/AdminAccess";
-import BookingHistory from "./pages/BookingHistory";
-import PatientDashboard from "./pages/PatientDashboard";
-import EmailVerification from "./pages/EmailVerification";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Lazy load pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Memberships = lazy(() => import("./pages/Memberships"));
+const About = lazy(() => import("./pages/About"));
+const Team = lazy(() => import("./pages/Team"));
+const Legal = lazy(() => import("./pages/Legal"));
+const DoctorEnrollment = lazy(() => import("./pages/DoctorEnrollment"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
+const DoctorSearch = lazy(() => import("./pages/DoctorSearch"));
+const DoctorProfile = lazy(() => import("./pages/DoctorProfile"));
+const BookAppointment = lazy(() => import("./pages/BookAppointment"));
+const BookingSuccess = lazy(() => import("./pages/BookingSuccess"));
+const DemoLogin = lazy(() => import("./pages/DemoLogin"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
+const BookingHistory = lazy(() => import("./pages/BookingHistory"));
+const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
+const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+
+// Lazy load notification center
+const NotificationCenter = lazy(() => 
+  import("@/components/notifications/NotificationCenter").then(module => ({
+    default: module.NotificationCenter
+  }))
+);
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showNotifications, setShowNotifications] = React.useState(false);
   const [showLiveChat, setShowLiveChat] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
 
@@ -49,27 +63,30 @@ const App = () => {
             }}
           >
             <ErrorBoundary>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/memberships" element={<Memberships />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/legal" element={<Legal />} />
-                <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/search" element={<DoctorSearch />} />
-                <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
-                <Route path="/book/:doctorId" element={<BookAppointment />} />
-                <Route path="/booking-success" element={<BookingSuccess />} />
-                <Route path="/demo" element={<DemoLogin />} />
-                <Route path="/doctor" element={<DoctorDashboard />} />
-                <Route path="/admin-access" element={<AdminAccess />} />
-                <Route path="/bookings" element={<BookingHistory />} />
-                <Route path="/dashboard" element={<PatientDashboard />} />
-                <Route path="/verify-email" element={<EmailVerification />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/memberships" element={<Memberships />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/team" element={<Team />} />
+                  <Route path="/legal" element={<Legal />} />
+                  <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/search" element={<DoctorSearch />} />
+                  <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
+                  <Route path="/book/:doctorId" element={<BookAppointment />} />
+                  <Route path="/booking-success" element={<BookingSuccess />} />
+                  <Route path="/demo" element={<DemoLogin />} />
+                  <Route path="/doctor" element={<DoctorDashboard />} />
+                  <Route path="/admin-access" element={<AdminAccess />} />
+                  <Route path="/bookings" element={<BookingHistory />} />
+                  <Route path="/dashboard" element={<PatientDashboard />} />
+                  <Route path="/verify-email" element={<EmailVerification />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+              
               <FloatingButtons />
               
               {/* Real-time Enhancements */}
@@ -77,10 +94,9 @@ const App = () => {
                 onSpeakingChange={setIsSpeaking}
               />
               
-              <EnhancedNotificationCenter 
-                isOpen={showNotifications}
-                onClose={() => setShowNotifications(false)}
-              />
+              <Suspense fallback={null}>
+                <NotificationCenter />
+              </Suspense>
               
               <LiveChatWidget 
                 isOpen={showLiveChat}
