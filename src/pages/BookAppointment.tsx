@@ -176,34 +176,24 @@ const BookAppointment = () => {
 
     setIsBooking(true);
     try {
-      // Create booking record
-      const bookingFee = 1000; // R10 booking fee
-      const totalAmount = doctor.consultation_fee + bookingFee;
-
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
+      // Create booking via Edge Function (handles membership perks & double-booking)
+      const { data: createData, error: createError } = await supabase.functions.invoke('create-booking', {
+        body: {
           doctor_id: doctor.id,
           appointment_date: selectedDate,
           appointment_time: selectedTime,
-          patient_notes: patientNotes,
-          consultation_fee: doctor.consultation_fee,
-          booking_fee: bookingFee,
-          total_amount: totalAmount,
-          status: 'pending',
-          payment_status: 'pending'
-        })
-        .select()
-        .single();
+          patient_notes: patientNotes
+        }
+      });
 
-      if (bookingError) throw bookingError;
+      if (createError || !createData?.success) throw new Error(createError?.message || createData?.error || 'Failed to create booking');
+      const booking = createData.booking;
 
-      // Initialize PayFast payment
+      // Initialize PayFast payment using server-calculated amount
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
           booking_id: booking.id,
-          amount: totalAmount,
+          amount: booking.total_amount,
           description: `Consultation with Dr. ${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           doctor_name: `${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           appointment_date: selectedDate,
@@ -430,7 +420,7 @@ const BookAppointment = () => {
                       </div>
                       <div className="flex justify-between">
                         <span>Booking Fee</span>
-                        <span>R10.00</span>
+                        <span>{formatCurrency(1000)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
