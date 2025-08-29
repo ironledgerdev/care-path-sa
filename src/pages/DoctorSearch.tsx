@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import RealtimeStatusBar from '@/components/RealtimeStatusBar';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchFilters, { SearchFilters as SearchFiltersType } from '@/components/SearchFilters';
 
@@ -200,7 +201,8 @@ const DoctorSearch = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-medical-gradient mb-2">Find Healthcare Providers</h1>
-          <p className="text-muted-foreground">Search and book appointments with verified medical professionals across South Africa</p>
+          <p className="text-muted-foreground mb-4">Search and book appointments with verified medical professionals across South Africa</p>
+          <RealtimeStatusBar className="justify-center" />
         </div>
 
         {/* Search Filters */}
