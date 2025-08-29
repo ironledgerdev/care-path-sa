@@ -75,14 +75,35 @@ export const DoctorEnrollmentForm = () => {
           applicant: user ? undefined : applicant
         }
       });
-      if (error || !data?.success) throw new Error(error?.message || data?.error || 'Submission failed');
 
-      toast({
-        title: "Application Submitted",
-        description: user ?
-          "Your application has been submitted for review. We'll contact you within 2-3 business days." :
-          "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
-      });
+      if (error || !data?.success) {
+        // Fallback: if user is logged in, insert pending_doctors directly
+        if (user) {
+          const { error: insertError } = await supabase
+            .from('pending_doctors')
+            .insert({
+              user_id: user.id,
+              ...formData,
+              consultation_fee: parseInt(formData.consultation_fee) * 100,
+              years_experience: parseInt(formData.years_experience),
+            });
+          if (insertError) throw insertError;
+
+          toast({
+            title: 'Application Submitted',
+            description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
+          });
+        } else {
+          throw new Error(data?.error || error?.message || 'Edge Function unavailable');
+        }
+      } else {
+        toast({
+          title: "Application Submitted",
+          description: user ?
+            "Your application has been submitted for review. We'll contact you within 2-3 business days." :
+            "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
+        });
+      }
 
       // Reset form
       setFormData({
