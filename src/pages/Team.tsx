@@ -10,6 +10,7 @@ const Team = () => {
       name: 'Ofentse Mashau',
       role: 'Founder & CEO',
       icon: <Crown className="h-6 w-6" />,
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F367b8b1b56084f9b8f9f2ed827964001?format=webp&width=800',
       description: 'Visionary leader with extensive experience in healthcare technology and business strategy. Passionate about transforming South African healthcare through innovation.',
       gradient: 'from-primary to-primary-soft',
       expertise: ['Strategic Leadership', 'Healthcare Innovation', 'Business Development', 'Technology Vision']
@@ -104,10 +105,19 @@ const Team = () => {
             <Card key={member.name} className="medical-hero-card hover:scale-105 transition-all duration-500">
               <CardContent className="p-8">
                 <div className="flex items-start gap-6">
-                  {/* Avatar placeholder with gradient */}
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${member.gradient} flex items-center justify-center text-white flex-shrink-0`}>
-                    {member.icon}
-                  </div>
+                  {/* Avatar photo if provided, else gradient placeholder */}
+                  {('image' in member && (member as any).image) ? (
+                    <img
+                      src={(member as any).image}
+                      alt={member.name}
+                      className="w-20 h-20 rounded-2xl object-cover ring-2 ring-primary/30 flex-shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${member.gradient} flex items-center justify-center text-white flex-shrink-0`}>
+                      {member.icon}
+                    </div>
+                  )}
                   
                   <div className="flex-1">
                     <h3 className="text-2xl font-bold text-medical-gradient mb-1">
