@@ -66,10 +66,10 @@ export const DoctorEnrollmentForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
+      window.dispatchEvent(new Event('openAuthModal'));
       toast({
-        title: "Error",
-        description: "You must be logged in to submit an application.",
-        variant: "destructive",
+        title: "Sign in required",
+        description: "Please create an account or log in to submit your application.",
       });
       return;
     }
