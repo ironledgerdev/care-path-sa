@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MapPin, Menu, X, User, LogOut, Settings, Calendar } from 'lucide-react';
@@ -17,6 +18,16 @@ const Header = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
+
+  // Listen for auth modal events from other components
+  useEffect(() => {
+    const handleOpenAuthModal = () => {
+      setAuthModalOpen(true);
+    };
+
+    window.addEventListener('openAuthModal', handleOpenAuthModal);
+    return () => window.removeEventListener('openAuthModal', handleOpenAuthModal);
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -131,7 +142,7 @@ const Header = () => {
                   className="btn-medical-primary hover:scale-105 transition-transform duration-200"
                   onClick={() => setAuthModalOpen(true)}
                 >
-                  Book Now
+                  Log In
                 </Button>
               </>
             )}
@@ -199,7 +210,7 @@ const Header = () => {
                       className="btn-medical-primary w-full"
                       onClick={() => setAuthModalOpen(true)}
                     >
-                      Book Now
+                      Log In
                     </Button>
                   </>
                 )}

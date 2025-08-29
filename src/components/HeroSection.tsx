@@ -1,17 +1,39 @@
+
 import React from 'react';
 import { ArrowRight, MapPin, Clock, Shield, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import heroImage from '@/assets/medical-hero.jpg';
 import SearchFilters from './SearchFilters';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection = () => {
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+
   const stats = [
     { icon: <MapPin className="h-5 w-5" />, label: 'Provinces Covered', value: '9' },
     { icon: <Shield className="h-5 w-5" />, label: 'Verified Doctors', value: '1,000+' },
     { icon: <Clock className="h-5 w-5" />, label: 'Avg. Booking Time', value: '< 2 min' },
     { icon: <Star className="h-5 w-5" />, label: 'Patient Rating', value: '4.9/5' }
   ];
+
+  const handleStartBooking = () => {
+    if (user && profile) {
+      // User is logged in, go to search doctors
+      navigate('/search');
+    } else {
+      // User not logged in, show auth modal to log in first
+      // We'll trigger the auth modal from the parent component
+      const authEvent = new CustomEvent('openAuthModal');
+      window.dispatchEvent(authEvent);
+    }
+  };
+
+  const handleJoinAsDoctor = () => {
+    navigate('/doctor-enrollment');
+  };
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -53,8 +75,9 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="btn-medical-primary text-lg px-8 py-4 h-auto shadow-lg hover:shadow-xl transition-all duration-300 group"
+                onClick={handleStartBooking}
               >
-                Start Booking Now
+                {user && profile ? 'Start Booking Now' : 'Log In to Book'}
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               
@@ -62,8 +85,9 @@ const HeroSection = () => {
                 variant="outline" 
                 size="lg" 
                 className="text-lg px-8 py-4 h-auto bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all duration-300"
+                onClick={handleJoinAsDoctor}
               >
-                Watch Demo
+                Join as Doctor
               </Button>
             </div>
 

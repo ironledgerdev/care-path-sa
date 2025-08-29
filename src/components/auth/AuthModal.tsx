@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, UserPlus, Stethoscope, Shield } from 'lucide-react';
+import { Loader2, User, UserPlus, Stethoscope, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,23 +26,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [userType, setUserType] = useState<'patient' | 'doctor'>('patient');
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
 
   const handleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      // Refresh the profile to get latest user data
+      await refreshProfile();
+
+      // Get the user's profile to determine redirect
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
       toast({
         title: "Success",
         description: "Signed in successfully!",
       });
+
       onClose();
+
+      // Redirect based on user role
+      setTimeout(() => {
+        if (profile?.role === 'admin') {
+          navigate('/admin');
+        } else if (profile?.role === 'doctor') {
+          navigate('/doctor');
+        } else {
+          navigate('/search'); // Patient goes to search page to book appointments
+        }
+      }, 500);
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -106,9 +135,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Password reset email sent! Check your inbox.",
+        title: "Password Reset Sent",
+        description: "Check your email for password reset instructions.",
       });
+
+      setShowPasswordReset(false);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -120,8 +151,88 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setFirstName('');
+    setLastName('');
+    setPhone('');
+    setUserType('patient');
+    setShowPasswordReset(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  if (showPasswordReset) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPasswordReset(false)}
+                className="h-8 w-8 p-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <DialogTitle className="text-medical-gradient">
+                Reset Password
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email Address</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              
+              <Button 
+                onClick={handlePasswordReset}
+                className="w-full btn-medical-primary"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending reset email...
+                  </>
+                ) : (
+                  'Send Reset Email'
+                )}
+              </Button>
+
+              <div className="text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPasswordReset(false)}
+                  className="text-sm text-muted-foreground"
+                >
+                  Back to sign in
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-medical-gradient">
@@ -179,7 +290,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </Button>
                 <Button 
                   variant="ghost" 
-                  onClick={handlePasswordReset}
+                  onClick={() => setShowPasswordReset(true)}
                   className="w-full text-sm"
                   disabled={isLoading}
                 >
