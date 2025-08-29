@@ -103,7 +103,22 @@ const DemoLogin = () => {
         });
 
         if (seedError || !seedData?.success) {
-          throw new Error(seedError?.message || seedData?.error || 'Failed to seed demo user');
+          console.warn('seed-demo-user failed, attempting client sign-up fallback...', seedError?.message || seedData?.error);
+          // Last-resort fallback: attempt direct sign-up (may be blocked by allowlist)
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: account.email,
+            password: account.password,
+            options: {
+              data: { first_name, last_name, role: account.role }
+            }
+          });
+          if (signUpError) {
+            throw new Error('Failed to seed demo user. Please deploy the seed-demo-user Edge Function and retry.');
+          }
+          if (signUpData.user) {
+            await supabase.auth.admin.updateUserById(signUpData.user.id, { email_confirm: true });
+            await supabase.from('profiles').upsert({ id: signUpData.user.id, email: account.email, first_name, last_name, role: account.role });
+          }
         }
 
         // Try sign in again
