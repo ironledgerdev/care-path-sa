@@ -30,7 +30,6 @@ const PracticeManagement = lazy(() => import("./pages/PracticeManagement"));
 const Support = lazy(() => import("./pages/Support"));
 const Careers = lazy(() => import("./pages/Careers"));
 const Contact = lazy(() => import("./pages/Contact"));
-const DemoLogin = lazy(() => import("./pages/DemoLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
@@ -92,9 +91,6 @@ const App = () => {
                         <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
                         <Route path="/book/:doctorId" element={<BookAppointment />} />
                         <Route path="/booking-success" element={<BookingSuccess />} />
-                        <Route path="/demo" element={<DemoLogin />} />
-                        <Route path="/DemoLogin" element={<DemoLogin />} />
-                        <Route path="/demo-login" element={<DemoLogin />} />
                         <Route path="/doctor" element={<DoctorDashboard />} />
                         <Route path="/admin-access" element={<AdminAccess />} />
                         <Route path="/bookings" element={<BookingHistory />} />

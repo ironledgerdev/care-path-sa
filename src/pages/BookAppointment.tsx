@@ -342,7 +342,7 @@ const BookAppointment = () => {
                 {!user && (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                     <p className="text-amber-800 text-sm">
-                      Please <Button variant="link" className="p-0" onClick={() => navigate('/auth')}>sign in</Button> to book an appointment.
+                      Please <Button variant="link" className="p-0" onClick={() => window.dispatchEvent(new Event('openAuthModal'))}>sign in</Button> to book an appointment.
                     </p>
                   </div>
                 )}

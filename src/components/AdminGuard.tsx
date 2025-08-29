@@ -42,7 +42,7 @@ export const AdminGuard = ({ children }: AdminGuardProps) => {
                 Go Home
               </Button>
               {!profile && (
-                <Button onClick={() => navigate('/demo')} variant="outline" className="btn-medical-secondary">
+                <Button onClick={() => window.dispatchEvent(new Event('openAuthModal'))} variant="outline" className="btn-medical-secondary">
                   Sign In
                 </Button>
               )}

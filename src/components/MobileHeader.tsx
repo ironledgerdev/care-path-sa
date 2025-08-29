@@ -116,7 +116,7 @@ export function MobileHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={() => navigate('/demo')} size="sm" className="btn-medical-primary">
+            <Button onClick={() => window.dispatchEvent(new Event('openAuthModal'))} size="sm" className="btn-medical-primary">
               Sign In
             </Button>
           )}
