@@ -97,8 +97,127 @@ const AdminDashboard = () => {
       fetchPendingDoctors();
       fetchDashboardStats();
       fetchUserMemberships();
+      setupRealtimeSubscriptions();
     }
+
+    return () => {
+      // Cleanup subscriptions when component unmounts
+      supabase.removeAllChannels();
+    };
   }, [profile]);
+
+  const setupRealtimeSubscriptions = () => {
+    // Listen for new pending doctor applications
+    const pendingDoctorsChannel = supabase
+      .channel('pending_doctors_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pending_doctors'
+        },
+        () => {
+          fetchPendingDoctors();
+          fetchDashboardStats();
+          toast({
+            title: "New Application",
+            description: "A new doctor application has been submitted.",
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pending_doctors'
+        },
+        () => {
+          fetchPendingDoctors();
+          fetchDashboardStats();
+        }
+      )
+      .subscribe();
+
+    // Listen for new bookings
+    const bookingsChannel = supabase
+      .channel('bookings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings'
+        },
+        () => {
+          fetchDashboardStats();
+          toast({
+            title: "New Booking",
+            description: "A new appointment has been booked.",
+          });
+        }
+      )
+      .subscribe();
+
+    // Listen for new user registrations
+    const profilesChannel = supabase
+      .channel('profiles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          fetchDashboardStats();
+          fetchUserMemberships();
+          toast({
+            title: "New User",
+            description: "A new user has registered.",
+          });
+        }
+      )
+      .subscribe();
+
+    // Listen for membership changes
+    const membershipsChannel = supabase
+      .channel('memberships_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'memberships'
+        },
+        () => {
+          fetchDashboardStats();
+          fetchUserMemberships();
+        }
+      )
+      .subscribe();
+
+    // Listen for doctor approvals/changes
+    const doctorsChannel = supabase
+      .channel('doctors_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'doctors'
+        },
+        () => {
+          fetchDashboardStats();
+          toast({
+            title: "Doctor Approved",
+            description: "A doctor has been approved and added to the platform.",
+          });
+        }
+      )
+      .subscribe();
+  };
 
   const fetchPendingDoctors = async () => {
     try {
@@ -256,9 +375,10 @@ const AdminDashboard = () => {
         description: `Doctor application ${action}d successfully`,
       });
 
-      // Refresh data
+      // Refresh data after action
       fetchPendingDoctors();
       fetchDashboardStats();
+      fetchUserMemberships();
     } catch (error: any) {
       toast({
         title: "Error",
