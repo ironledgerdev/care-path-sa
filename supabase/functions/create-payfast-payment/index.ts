@@ -79,24 +79,32 @@ serve(async (req) => {
       throw new Error("Failed to get user profile");
     }
 
+    // Determine frontend origin for return/cancel URLs
+    const originHeader = req.headers.get("origin");
+    const FRONTEND_BASE_URL = Deno.env.get("FRONTEND_BASE_URL") ?? "";
+    const frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    if (!frontendOrigin) {
+      throw new Error("FRONTEND_BASE_URL not configured and no Origin header present");
+    }
+
     // PayFast payment data
     const paymentData = {
       merchant_id: MERCHANT_ID,
       merchant_key: MERCHANT_KEY,
-      return_url: `${req.headers.get("origin")}/booking-success?booking_id=${booking_id}`,
-      cancel_url: `${req.headers.get("origin")}/booking-cancelled?booking_id=${booking_id}`,
+      return_url: `${frontendOrigin}/booking-success?booking_id=${booking_id}`,
+      cancel_url: `${frontendOrigin}/booking-cancelled?booking_id=${booking_id}`,
       notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payfast-webhook`,
-      
+
       // Payment details
       amount: (amount / 100).toFixed(2), // Convert from cents to rands
       item_name: description,
       item_description: `Appointment with ${doctor_name} on ${appointment_date} at ${appointment_time}`,
-      
+
       // Customer details
       name_first: profile.first_name || '',
       name_last: profile.last_name || '',
       email_address: profile.email,
-      
+
       // Custom fields
       custom_str1: booking_id,
       custom_str2: user.id,
