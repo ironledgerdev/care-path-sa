@@ -14,7 +14,9 @@ import {
   MessageCircle,
   Loader2,
   Heart,
-  Activity
+  Activity,
+  X,
+  Stethoscope
 } from 'lucide-react';
 
 interface VoiceInterfaceProps {
@@ -40,6 +42,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor'>('excellent');
+  const [isExpanded, setIsExpanded] = useState(false);
   const chatRef = useRef<RealtimeChat | null>(null);
 
   const handleMessage = (event: any) => {
@@ -166,12 +169,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
     setIsSpeaking(false);
     setIsListening(false);
     setCurrentTranscript('');
+    setIsExpanded(false);
     onSpeakingChange?.(false);
     
     toast({
       title: "Call Ended",
       description: "Voice conversation has been ended",
     });
+  };
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
   };
 
   useEffect(() => {
@@ -192,15 +200,56 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
     }
   }, [isConnected]);
 
+  // Show collapsed floating button when not expanded
+  if (!isExpanded) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={toggleExpanded}
+          className={`w-16 h-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 ${
+            isConnected 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+          }`}
+          disabled={isConnecting}
+        >
+          {isConnecting ? (
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
+          ) : isConnected ? (
+            <div className="relative">
+              <Stethoscope className="h-6 w-6 text-white" />
+              {(isSpeaking || isListening) && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <Stethoscope className="h-6 w-6 text-white mb-1" />
+              <Heart className="h-3 w-3 text-red-300" />
+            </div>
+          )}
+        </Button>
+        
+        {/* Status tooltip */}
+        {isConnected && (
+          <div className="absolute bottom-20 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded-lg animate-fade-in">
+            {isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Connected'}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show expanded interface
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
       <Card className="medical-hero-card w-80 shadow-2xl">
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
-                <Heart className="h-4 w-4 text-red-500" />
+                <Stethoscope className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-sm">Health Assistant</span>
               </div>
               {isConnected && (
@@ -211,22 +260,32 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
               )}
             </div>
             
-            {isConnected && (
-              <div className="flex items-center gap-1">
-                {isSpeaking && (
-                  <div className="flex items-center gap-1 text-xs text-primary">
-                    <Volume2 className="h-3 w-3" />
-                    <span>Speaking...</span>
-                  </div>
-                )}
-                {isListening && (
-                  <div className="flex items-center gap-1 text-xs text-green-600">
-                    <Mic className="h-3 w-3" />
-                    <span>Listening...</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              {isConnected && (
+                <>
+                  {isSpeaking && (
+                    <div className="flex items-center gap-1 text-xs text-primary">
+                      <Volume2 className="h-3 w-3" />
+                      <span>Speaking...</span>
+                    </div>
+                  )}
+                  {isListening && (
+                    <div className="flex items-center gap-1 text-xs text-green-600">
+                      <Mic className="h-3 w-3" />
+                      <span>Listening...</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleExpanded}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -235,7 +294,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
               {messages.slice(-3).map((message, index) => (
                 <div
                   key={index}
-                  className={`text-xs p-2 rounded-lg ${
+                  className={`text-xs p-2 rounded-lg animate-fade-in ${
                     message.type === 'user'
                       ? 'bg-primary/10 text-primary'
                       : 'bg-muted text-muted-foreground'
@@ -252,7 +311,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
           {/* Current transcript */}
           {currentTranscript && (
-            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg animate-fade-in">
               <div className="text-xs text-blue-600 font-medium mb-1">Assistant is saying:</div>
               <div className="text-xs text-blue-800">{currentTranscript}...</div>
             </div>
@@ -307,7 +366,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
           {/* Help text */}
           {!isConnected && (
-            <div className="mt-3 text-xs text-muted-foreground text-center">
+            <div className="mt-3 text-xs text-muted-foreground text-center animate-fade-in">
               Start a voice conversation with our AI health assistant.
               <br />
               <span className="text-amber-600">Microphone access required</span>
