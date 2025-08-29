@@ -67,7 +67,10 @@ const App = () => {
             <ErrorBoundary>
               <SidebarProvider defaultOpen={false}>
                 <div className="flex min-h-screen w-full">
-                  <AppSidebar />
+                  {/* Mobile-only sidebar */}
+                  <div className="md:hidden">
+                    <AppSidebar />
+                  </div>
                   
                   <main className="flex-1 relative">
                     {/* Mobile hamburger menu */}
