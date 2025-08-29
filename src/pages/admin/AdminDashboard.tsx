@@ -21,11 +21,19 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  Settings
+  Settings,
+  UserPlus,
+  Stethoscope,
+  Search,
+  Shield
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PendingDoctor {
   id: string;
@@ -88,6 +96,33 @@ const AdminDashboard = () => {
     premiumMembers: 0
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: 'patient' as 'patient' | 'doctor' | 'admin'
+  });
+  const [newDoctor, setNewDoctor] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    practice_name: '',
+    speciality: '',
+    qualification: '',
+    license_number: '',
+    years_experience: '',
+    consultation_fee: '',
+    address: '',
+    city: '',
+    province: '',
+    postal_code: '',
+    bio: '',
+  });
+  const [impersonateEmail, setImpersonateEmail] = useState('');
   const { profile } = useAuth();
   const { toast } = useToast();
 
@@ -280,6 +315,259 @@ const AdminDashboard = () => {
       });
     } catch (error: any) {
       console.error('Failed to fetch dashboard stats:', error);
+    }
+  };
+
+  const specialties = [
+    'General Practitioner',
+    'Cardiologist',
+    'Dermatologist',
+    'Neurologist',
+    'Pediatrician',
+    'Psychiatrist',
+    'Orthopedic Surgeon',
+    'Gynecologist',
+    'Urologist',
+    'Radiologist',
+    'Anesthesiologist',
+    'Emergency Medicine',
+    'Family Medicine',
+    'Internal Medicine',
+    'Other'
+  ];
+
+  const southAfricanProvinces = [
+    'Eastern Cape',
+    'Free State',
+    'Gauteng',
+    'KwaZulu-Natal',
+    'Limpopo',
+    'Mpumalanga',
+    'Northern Cape',
+    'North West',
+    'Western Cape'
+  ];
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password || !newUser.firstName || !newUser.lastName) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: newUser.email,
+        password: newUser.password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: newUser.firstName,
+          last_name: newUser.lastName,
+          phone: newUser.phone,
+          role: newUser.role,
+        }
+      });
+
+      if (error) throw error;
+
+      // Update the user's profile with the correct role
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: newUser.role,
+          first_name: newUser.firstName,
+          last_name: newUser.lastName,
+          phone: newUser.phone
+        })
+        .eq('id', data.user.id);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Success",
+        description: `${newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)} created successfully.`,
+      });
+
+      // Reset form
+      setNewUser({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        role: 'patient'
+      });
+
+      // Refresh data
+      fetchDashboardStats();
+      fetchUserMemberships();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateDoctor = async () => {
+    if (!newDoctor.email || !newDoctor.password || !newDoctor.firstName || !newDoctor.lastName || 
+        !newDoctor.practice_name || !newDoctor.speciality || !newDoctor.license_number) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Create user account
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: newDoctor.email,
+        password: newDoctor.password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: newDoctor.firstName,
+          last_name: newDoctor.lastName,
+          phone: newDoctor.phone,
+          role: 'doctor',
+        }
+      });
+
+      if (error) throw error;
+
+      // Update profile to doctor role
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'doctor',
+          first_name: newDoctor.firstName,
+          last_name: newDoctor.lastName,
+          phone: newDoctor.phone
+        })
+        .eq('id', data.user.id);
+
+      if (profileError) throw profileError;
+
+      // Add to doctors table
+      const { error: doctorError } = await supabase
+        .from('doctors')
+        .insert({
+          user_id: data.user.id,
+          practice_name: newDoctor.practice_name,
+          speciality: newDoctor.speciality,
+          qualification: newDoctor.qualification,
+          license_number: newDoctor.license_number,
+          consultation_fee: parseInt(newDoctor.consultation_fee) * 100, // Convert to cents
+          years_experience: parseInt(newDoctor.years_experience) || 0,
+          address: newDoctor.address,
+          city: newDoctor.city,
+          province: newDoctor.province,
+          postal_code: newDoctor.postal_code,
+          bio: newDoctor.bio,
+          approved_by: profile?.id,
+          approved_at: new Date().toISOString(),
+        });
+
+      if (doctorError) throw doctorError;
+
+      toast({
+        title: "Success",
+        description: "Doctor created and approved successfully.",
+      });
+
+      // Reset form
+      setNewDoctor({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        practice_name: '',
+        speciality: '',
+        qualification: '',
+        license_number: '',
+        years_experience: '',
+        consultation_fee: '',
+        address: '',
+        city: '',
+        province: '',
+        postal_code: '',
+        bio: '',
+      });
+
+      // Refresh data
+      fetchDashboardStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImpersonate = async () => {
+    if (!impersonateEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Get user by email
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', impersonateEmail)
+        .single();
+
+      if (profileError || !profileData) {
+        throw new Error('User not found');
+      }
+
+      // Use admin.generateLink to create an impersonation session
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: impersonateEmail,
+        options: {
+          redirectTo: window.location.origin,
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Impersonation Link Generated",
+        description: "Opening impersonation session in new tab.",
+      });
+
+      // Open the magic link in a new window for impersonation
+      window.open(data.properties.action_link, '_blank');
+      
+      setImpersonateEmail('');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -520,6 +808,18 @@ const AdminDashboard = () => {
               <Users className="h-4 w-4" />
               Memberships ({stats.totalUsers})
             </TabsTrigger>
+            <TabsTrigger value="create-user" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Create User
+            </TabsTrigger>
+            <TabsTrigger value="create-doctor" className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4" />
+              Create Doctor
+            </TabsTrigger>
+            <TabsTrigger value="impersonate" className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Impersonate
+            </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Settings
@@ -687,6 +987,367 @@ const AdminDashboard = () => {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="create-user">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>Create New User</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="user-role">User Type</Label>
+                      <Select value={newUser.role} onValueChange={(value: 'patient' | 'doctor' | 'admin') => setNewUser(prev => ({ ...prev, role: value }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="patient">Patient</SelectItem>
+                          <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="user-firstName">First Name *</Label>
+                        <Input
+                          id="user-firstName"
+                          value={newUser.firstName}
+                          onChange={(e) => setNewUser(prev => ({ ...prev, firstName: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="user-lastName">Last Name *</Label>
+                        <Input
+                          id="user-lastName"
+                          value={newUser.lastName}
+                          onChange={(e) => setNewUser(prev => ({ ...prev, lastName: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="user-email">Email *</Label>
+                      <Input
+                        id="user-email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="user-password">Password *</Label>
+                      <Input
+                        id="user-password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="user-phone">Phone</Label>
+                      <Input
+                        id="user-phone"
+                        type="tel"
+                        value={newUser.phone}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, phone: e.target.value }))}
+                      />
+                    </div>
+
+                    <Button 
+                      onClick={handleCreateUser}
+                      className="w-full btn-medical-primary"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Create {newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="create-doctor">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>Create New Doctor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Personal Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-firstName">First Name *</Label>
+                        <Input
+                          id="doctor-firstName"
+                          value={newDoctor.firstName}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, firstName: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-lastName">Last Name *</Label>
+                        <Input
+                          id="doctor-lastName"
+                          value={newDoctor.lastName}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, lastName: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-email">Email *</Label>
+                        <Input
+                          id="doctor-email"
+                          type="email"
+                          value={newDoctor.email}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, email: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-password">Password *</Label>
+                        <Input
+                          id="doctor-password"
+                          type="password"
+                          value={newDoctor.password}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, password: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-phone">Phone</Label>
+                        <Input
+                          id="doctor-phone"
+                          type="tel"
+                          value={newDoctor.phone}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, phone: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Practice Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Practice Information</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-practice">Practice Name *</Label>
+                        <Input
+                          id="doctor-practice"
+                          value={newDoctor.practice_name}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, practice_name: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-specialty">Specialty *</Label>
+                        <Select value={newDoctor.speciality} onValueChange={(value) => setNewDoctor(prev => ({ ...prev, speciality: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select specialty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {specialties.map((specialty) => (
+                              <SelectItem key={specialty} value={specialty}>
+                                {specialty}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-qualification">Qualification *</Label>
+                        <Input
+                          id="doctor-qualification"
+                          placeholder="e.g., MBChB, MD, DO"
+                          value={newDoctor.qualification}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, qualification: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-license">HPCSA License Number *</Label>
+                        <Input
+                          id="doctor-license"
+                          value={newDoctor.license_number}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, license_number: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-experience">Years of Experience</Label>
+                        <Input
+                          id="doctor-experience"
+                          type="number"
+                          min="0"
+                          value={newDoctor.years_experience}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, years_experience: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-fee">Consultation Fee (ZAR)</Label>
+                        <Input
+                          id="doctor-fee"
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 500"
+                          value={newDoctor.consultation_fee}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, consultation_fee: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Address Information</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="doctor-address">Practice Address</Label>
+                        <Input
+                          id="doctor-address"
+                          value={newDoctor.address}
+                          onChange={(e) => setNewDoctor(prev => ({ ...prev, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="doctor-city">City</Label>
+                          <Input
+                            id="doctor-city"
+                            value={newDoctor.city}
+                            onChange={(e) => setNewDoctor(prev => ({ ...prev, city: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="doctor-province">Province</Label>
+                          <Select value={newDoctor.province} onValueChange={(value) => setNewDoctor(prev => ({ ...prev, province: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select province" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {southAfricanProvinces.map((province) => (
+                                <SelectItem key={province} value={province}>
+                                  {province}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="doctor-postal">Postal Code</Label>
+                          <Input
+                            id="doctor-postal"
+                            value={newDoctor.postal_code}
+                            onChange={(e) => setNewDoctor(prev => ({ ...prev, postal_code: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div className="space-y-2">
+                    <Label htmlFor="doctor-bio">Professional Bio</Label>
+                    <Textarea
+                      id="doctor-bio"
+                      placeholder="Tell patients about your experience, approach to healthcare, and what makes you unique..."
+                      value={newDoctor.bio}
+                      onChange={(e) => setNewDoctor(prev => ({ ...prev, bio: e.target.value }))}
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleCreateDoctor}
+                    className="w-full btn-medical-primary"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                        Creating Doctor...
+                      </>
+                    ) : (
+                      <>
+                        <Stethoscope className="h-4 w-4 mr-2" />
+                        Create & Approve Doctor
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="impersonate">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  User Impersonation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-w-md space-y-4">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Eye className="h-4 w-4 text-amber-600" />
+                      <h4 className="font-semibold text-amber-800">Admin Impersonation</h4>
+                    </div>
+                    <p className="text-sm text-amber-700">
+                      This will generate a secure login link to access any user's account. 
+                      Use responsibly for support and testing purposes only.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="impersonate-email">User Email</Label>
+                    <Input
+                      id="impersonate-email"
+                      type="email"
+                      placeholder="user@example.com"
+                      value={impersonateEmail}
+                      onChange={(e) => setImpersonateEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleImpersonate}
+                    className="w-full btn-medical-primary"
+                    disabled={isLoading || !impersonateEmail}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                        Generating Link...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Impersonate User
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-xs text-muted-foreground">
+                    <p>• The impersonation link will open in a new tab</p>
+                    <p>• You will be logged in as the specified user</p>
+                    <p>• Close the tab to end the impersonation session</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
