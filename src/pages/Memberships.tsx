@@ -3,6 +3,9 @@ import { Check, Star, Crown, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/components/Header';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Memberships = () => {
   const plans = [
@@ -50,6 +53,34 @@ const Memberships = () => {
       gradient: 'from-primary to-primary-soft'
     }
   ];
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const startPremiumCheckout = async () => {
+    try {
+      if (!user) {
+        window.dispatchEvent(new Event('openAuthModal'));
+        return;
+      }
+      const amountCents = 3900; // R39 quarterly
+      const { data, error } = await supabase.functions.invoke('create-payfast-membership', {
+        body: {
+          amount: amountCents,
+          description: 'Premium membership (quarterly)',
+          plan: 'premium'
+        }
+      });
+      if (error) throw error;
+      if (data?.payment_url) {
+        window.location.href = data.payment_url;
+      } else {
+        throw new Error('Payment URL not returned');
+      }
+    } catch (err: any) {
+      toast({ title: 'Checkout Failed', description: err.message || 'Unable to start checkout', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,9 +153,10 @@ const Memberships = () => {
                     ))}
                   </ul>
                   
-                  <Button 
+                  <Button
                     className={`w-full mt-6 ${plan.popular ? 'btn-medical-primary' : 'btn-medical-secondary'}`}
                     size="lg"
+                    onClick={plan.name === 'Premium' ? startPremiumCheckout : undefined}
                   >
                     {plan.ctaText}
                   </Button>
