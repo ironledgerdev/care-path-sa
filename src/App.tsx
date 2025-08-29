@@ -15,6 +15,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorSearch from "./pages/DoctorSearch";
 import BookAppointment from "./pages/BookAppointment";
+import BookingSuccess from "./pages/BookingSuccess";
+import MembershipManagement from "./pages/MembershipManagement";
+import DemoLogin from "./pages/DemoLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/memberships" element={<Memberships />} />
+            <Route path="/membership-management" element={<MembershipManagement />} />
             <Route path="/about" element={<About />} />
             <Route path="/team" element={<Team />} />
             <Route path="/legal" element={<Legal />} />
@@ -36,6 +40,8 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/search" element={<DoctorSearch />} />
             <Route path="/book/:doctorId" element={<BookAppointment />} />
+            <Route path="/booking-success" element={<BookingSuccess />} />
+            <Route path="/demo" element={<DemoLogin />} />
             <Route path="/doctor" element={<DoctorDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -209,8 +209,9 @@ const Index = () => {
               variant="outline" 
               size="lg" 
               className="border-white text-white hover:bg-white/10 text-lg px-8 py-4 h-auto"
+              onClick={() => navigate('/doctor-enrollment')}
             >
-              Become a Partner Doctor
+              Join as a Doctor
             </Button>
           </div>
         </div>

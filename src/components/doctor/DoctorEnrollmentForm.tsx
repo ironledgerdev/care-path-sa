@@ -87,6 +87,25 @@ export const DoctorEnrollmentForm = () => {
 
       if (error) throw error;
 
+      // Send pending doctor email
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'doctor_pending',
+            data: {
+              doctor_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || 'Doctor',
+              doctor_email: user.email,
+              practice_name: formData.practice_name,
+              speciality: formData.speciality,
+              license_number: formData.license_number
+            }
+          }
+        });
+      } catch (emailError) {
+        console.error('Failed to send email:', emailError);
+        // Don't throw - we don't want to fail the application because of email issues
+      }
+
       toast({
         title: "Application Submitted",
         description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
