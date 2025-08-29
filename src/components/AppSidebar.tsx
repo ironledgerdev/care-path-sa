@@ -179,13 +179,13 @@ export function AppSidebar() {
         ) : (
           <div className="px-4 py-3">
             <SidebarMenuButton asChild>
-              <NavLink 
-                to="/demo" 
+              <button
+                onClick={() => window.dispatchEvent(new Event('openAuthModal'))}
                 className="flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary text-muted-foreground hover:bg-muted"
               >
                 <User className="h-4 w-4" />
                 {open && <span>Sign In</span>}
-              </NavLink>
+              </button>
             </SidebarMenuButton>
           </div>
         )}
