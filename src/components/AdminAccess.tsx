@@ -20,6 +20,9 @@ export const AdminAccess = () => {
     setIsLoading(true);
     
     if (accessCode === ADMIN_ACCESS_CODE) {
+      // Store admin access in session storage
+      sessionStorage.setItem('admin_access', 'granted');
+      
       toast({
         title: "Access Granted",
         description: "Welcome to the admin dashboard.",

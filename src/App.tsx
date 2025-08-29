@@ -16,7 +16,6 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorSearch from "./pages/DoctorSearch";
 import BookAppointment from "./pages/BookAppointment";
 import BookingSuccess from "./pages/BookingSuccess";
-import MembershipManagement from "./pages/MembershipManagement";
 import DemoLogin from "./pages/DemoLogin";
 import NotFound from "./pages/NotFound";
 import { AdminAccess } from "./components/AdminAccess";
@@ -33,7 +32,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/memberships" element={<Memberships />} />
-            <Route path="/membership-management" element={<MembershipManagement />} />
             <Route path="/about" element={<About />} />
             <Route path="/team" element={<Team />} />
             <Route path="/legal" element={<Legal />} />

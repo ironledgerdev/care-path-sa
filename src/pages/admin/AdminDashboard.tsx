@@ -55,24 +55,48 @@ interface DashboardStats {
   pendingApplications: number;
   totalBookings: number;
   totalRevenue: number;
+  totalUsers: number;
+  premiumMembers: number;
+}
+
+interface UserMembership {
+  id: string;
+  user_id: string;
+  membership_type: 'basic' | 'premium';
+  is_active: boolean;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  free_bookings_remaining: number;
+  created_at: string;
+  profiles: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    role: string;
+  } | null;
 }
 
 const AdminDashboard = () => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
+  const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalDoctors: 0,
     pendingApplications: 0,
     totalBookings: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
+    totalUsers: 0,
+    premiumMembers: 0
   });
   const [isLoading, setIsLoading] = useState(false);
   const { profile } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    const hasAdminAccess = profile?.role === 'admin' || sessionStorage.getItem('admin_access') === 'granted';
+    if (hasAdminAccess) {
       fetchPendingDoctors();
       fetchDashboardStats();
+      fetchUserMemberships();
     }
   }, [profile]);
 
@@ -117,10 +141,12 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const [doctorsResult, pendingResult, bookingsResult] = await Promise.all([
+      const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
         supabase.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
-        supabase.from('bookings').select('total_amount', { count: 'exact' })
+        supabase.from('bookings').select('total_amount', { count: 'exact' }),
+        supabase.from('profiles').select('id', { count: 'exact' }),
+        supabase.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)
       ]);
 
       const totalRevenue = bookingsResult.data?.reduce((sum, booking) => sum + (booking.total_amount || 0), 0) || 0;
@@ -129,10 +155,58 @@ const AdminDashboard = () => {
         totalDoctors: doctorsResult.count || 0,
         pendingApplications: pendingResult.count || 0,
         totalBookings: bookingsResult.count || 0,
-        totalRevenue: totalRevenue / 100 // Convert from cents
+        totalRevenue: totalRevenue / 100, // Convert from cents
+        totalUsers: usersResult.count || 0,
+        premiumMembers: premiumResult.count || 0
       });
     } catch (error: any) {
       console.error('Failed to fetch dashboard stats:', error);
+    }
+  };
+
+  const fetchUserMemberships = async () => {
+    try {
+      const { data: memberships, error } = await supabase
+        .from('memberships')
+        .select(`
+          id,
+          user_id,
+          membership_type,
+          is_active,
+          current_period_start,
+          current_period_end,
+          free_bookings_remaining,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get profiles separately to avoid relation issues
+      const userIds = memberships?.map(m => m.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, role')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const enrichedMemberships = memberships?.map(membership => {
+        const profile = profilesData?.find(p => p.id === membership.user_id);
+        return {
+          ...membership,
+          profiles: profile || null
+        };
+      }) as UserMembership[] || [];
+
+      setUserMemberships(enrichedMemberships);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch user memberships",
+        variant: "destructive",
+      });
     }
   };
 
@@ -203,7 +277,10 @@ const AdminDashboard = () => {
     }).format(amount);
   };
 
-  if (profile?.role !== 'admin') {
+  // Check admin access (either through auth or session)
+  const hasAdminAccess = profile?.role === 'admin' || sessionStorage.getItem('admin_access') === 'granted';
+
+  if (!hasAdminAccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -226,15 +303,39 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+          <Card className="medical-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-primary">{stats.totalUsers}</div>
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="medical-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Premium Members</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-yellow-600">{stats.premiumMembers}</div>
+                <TrendingUp className="h-5 w-5 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="medical-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Doctors</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-primary">{stats.totalDoctors}</div>
-                <UserCheck className="h-5 w-5 text-primary" />
+                <div className="text-2xl font-bold text-green-600">{stats.totalDoctors}</div>
+                <UserCheck className="h-5 w-5 text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -269,10 +370,10 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-purple-600">
                   {formatCurrency(stats.totalRevenue)}
                 </div>
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <DollarSign className="h-5 w-5 text-purple-600" />
               </div>
             </CardContent>
           </Card>
@@ -288,6 +389,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="doctors" className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
               Approved Doctors
+            </TabsTrigger>
+            <TabsTrigger value="memberships" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Memberships ({stats.totalUsers})
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -380,6 +485,82 @@ const AdminDashboard = () => {
               <CardContent>
                 <p className="text-muted-foreground">View and manage approved healthcare providers.</p>
                 {/* Add approved doctors table here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="memberships">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>User Memberships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {userMemberships.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No memberships found</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Free Bookings</TableHead>
+                        <TableHead>Period End</TableHead>
+                        <TableHead>Joined</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userMemberships.map((membership) => (
+                        <TableRow key={membership.id}>
+                          <TableCell>
+                            <div className="font-medium">
+                              {membership.profiles?.first_name && membership.profiles?.last_name
+                                ? `${membership.profiles.first_name} ${membership.profiles.last_name}`
+                                : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {membership.profiles?.email || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {membership.profiles?.role || 'patient'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={membership.membership_type === 'premium' ? 'default' : 'secondary'}
+                              className={membership.membership_type === 'premium' ? 'bg-yellow-500 text-white' : ''}
+                            >
+                              {membership.membership_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={membership.is_active ? 'default' : 'destructive'}>
+                              {membership.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {membership.free_bookings_remaining}
+                          </TableCell>
+                          <TableCell>
+                            {membership.current_period_end 
+                              ? new Date(membership.current_period_end).toLocaleDateString()
+                              : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(membership.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
