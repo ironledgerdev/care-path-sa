@@ -360,36 +360,44 @@ const AdminDashboard = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Use signUp instead of admin.createUser to trigger email verification
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: newUser.firstName,
-          last_name: newUser.lastName,
-          phone: newUser.phone,
-          role: newUser.role,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            phone: newUser.phone,
+            role: newUser.role,
+          }
         }
       });
 
       if (error) throw error;
 
-      // Update the user's profile with the correct role
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: newUser.role,
-          first_name: newUser.firstName,
-          last_name: newUser.lastName,
-          phone: newUser.phone
-        })
-        .eq('id', data.user.id);
-
-      if (profileError) throw profileError;
+      // Send custom verification email
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'user_verification',
+            data: {
+              user_name: `${newUser.firstName} ${newUser.lastName}`,
+              user_email: newUser.email,
+              verification_link: `${window.location.origin}/verify-email`
+            }
+          }
+        });
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+      }
 
       toast({
         title: "Success",
-        description: `${newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)} created successfully.`,
+        description: `${newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)} account created! Verification email sent to ${newUser.email}.`,
       });
 
       // Reset form
@@ -429,39 +437,30 @@ const AdminDashboard = () => {
 
     setIsLoading(true);
     try {
-      // Create user account
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Create user account with signUp (will require email verification)
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
         email: newDoctor.email,
         password: newDoctor.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: newDoctor.firstName,
-          last_name: newDoctor.lastName,
-          phone: newDoctor.phone,
-          role: 'doctor',
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            first_name: newDoctor.firstName,
+            last_name: newDoctor.lastName,
+            phone: newDoctor.phone,
+            role: 'doctor',
+          }
         }
       });
 
       if (error) throw error;
 
-      // Update profile to doctor role
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'doctor',
-          first_name: newDoctor.firstName,
-          last_name: newDoctor.lastName,
-          phone: newDoctor.phone
-        })
-        .eq('id', data.user.id);
-
-      if (profileError) throw profileError;
-
-      // Add to doctors table
-      const { error: doctorError } = await supabase
-        .from('doctors')
+      // Add to pending_doctors table (they need admin approval)
+      const { error: pendingError } = await supabase
+        .from('pending_doctors')
         .insert({
-          user_id: data.user.id,
+          user_id: data.user!.id,
           practice_name: newDoctor.practice_name,
           speciality: newDoctor.speciality,
           qualification: newDoctor.qualification,
@@ -473,15 +472,32 @@ const AdminDashboard = () => {
           province: newDoctor.province,
           postal_code: newDoctor.postal_code,
           bio: newDoctor.bio,
-          approved_by: profile?.id,
-          approved_at: new Date().toISOString(),
+          status: 'pending'
         });
 
-      if (doctorError) throw doctorError;
+      if (pendingError) throw pendingError;
+
+      // Send under review email
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'doctor_under_review',
+            data: {
+              doctor_name: `${newDoctor.firstName} ${newDoctor.lastName}`,
+              doctor_email: newDoctor.email,
+              practice_name: newDoctor.practice_name,
+              speciality: newDoctor.speciality,
+              license_number: newDoctor.license_number
+            }
+          }
+        });
+      } catch (emailError) {
+        console.error('Failed to send review email:', emailError);
+      }
 
       toast({
         title: "Success",
-        description: "Doctor created and approved successfully.",
+        description: "Doctor account created and application submitted for review. They will receive an email notification.",
       });
 
       // Reset form
@@ -506,6 +522,7 @@ const AdminDashboard = () => {
 
       // Refresh data
       fetchDashboardStats();
+      fetchPendingDoctors();
     } catch (error: any) {
       toast({
         title: "Error",
