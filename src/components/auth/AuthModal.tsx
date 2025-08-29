@@ -325,79 +325,94 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input
-                      id="first-name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                    />
+
+                {userType === 'doctor' ? (
+                  <div className="text-center space-y-4 py-6">
+                    <div className="p-4 bg-accent/50 rounded-lg border-l-4 border-primary">
+                      <h4 className="font-semibold text-primary mb-2">Healthcare Provider Registration</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Healthcare providers need to complete a comprehensive enrollment process with professional credentials and verification.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        onClose();
+                        navigate('/doctor-enrollment');
+                      }}
+                      className="w-full btn-medical-primary"
+                    >
+                      <Stethoscope className="mr-2 h-4 w-4" />
+                      Continue to Doctor Enrollment
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input
-                      id="last-name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="first-name">First Name</Label>
+                        <Input
+                          id="first-name"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="last-name">Last Name</Label>
+                        <Input
+                          id="last-name"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+27 XX XXX XXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+27 XX XXX XXXX"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
 
-                <Button 
-                  onClick={handleSignUp}
-                  className="w-full btn-medical-primary"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    `Create ${userType === 'doctor' ? 'Provider' : 'Patient'} Account`
-                  )}
-                </Button>
-
-                {userType === 'doctor' && (
-                  <div className="mt-4 p-3 bg-accent/50 rounded-lg border-l-4 border-primary">
-                    <p className="text-xs text-muted-foreground">
-                      As a healthcare provider, your application will be reviewed by our team before approval.
-                    </p>
-                  </div>
+                    <Button 
+                      onClick={handleSignUp}
+                      className="w-full btn-medical-primary"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        'Create Patient Account'
+                      )}
+                    </Button>
+                  </>
                 )}
               </CardContent>
             </Card>

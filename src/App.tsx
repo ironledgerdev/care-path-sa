@@ -19,6 +19,7 @@ import BookingSuccess from "./pages/BookingSuccess";
 import MembershipManagement from "./pages/MembershipManagement";
 import DemoLogin from "./pages/DemoLogin";
 import NotFound from "./pages/NotFound";
+import { AdminAccess } from "./components/AdminAccess";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/demo" element={<DemoLogin />} />
             <Route path="/doctor" element={<DoctorDashboard />} />
+            <Route path="/admin-access" element={<AdminAccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
