@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { AdminRoleManager } from '@/components/AdminRoleManager';
+import { AdminGuard } from '@/components/AdminGuard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +87,14 @@ interface UserMembership {
 }
 
 const AdminDashboard = () => {
+  return (
+    <AdminGuard>
+      <AdminDashboardContent />
+    </AdminGuard>
+  );
+};
+
+const AdminDashboardContent = () => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
   const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -127,19 +137,30 @@ const AdminDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const hasAdminAccess = profile?.role === 'admin' || sessionStorage.getItem('admin_access') === 'granted';
-    if (hasAdminAccess) {
+    // Only allow actual admin users, not sessionStorage bypass
+    if (profile?.role === 'admin') {
       fetchPendingDoctors();
       fetchDashboardStats();
       fetchUserMemberships();
       setupRealtimeSubscriptions();
+    } else if (profile && profile.role !== 'admin') {
+      // User is logged in but not admin - redirect
+      toast({
+        title: "Access Denied",
+        description: "Admin privileges required to access this page.",
+        variant: "destructive",
+      });
+      // Redirect to home after showing error
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
     }
 
     return () => {
       // Cleanup subscriptions when component unmounts
       supabase.removeAllChannels();
     };
-  }, [profile]);
+  }, [profile, toast]);
 
   const setupRealtimeSubscriptions = () => {
     // Listen for new pending doctor applications
@@ -725,7 +746,25 @@ const AdminDashboard = () => {
     );
   }
 
-  return (
+  // Security check - only allow actual admin users
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md medical-card">
+          <CardContent className="p-8 text-center">
+            <Shield className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <h2 className="text-2xl font-bold text-medical-gradient mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">
+              You need administrator privileges to access this page.
+            </p>
+            <Button onClick={() => window.location.href = '/'} className="btn-medical-primary">
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
@@ -1271,9 +1310,13 @@ const AdminDashboard = () => {
                             onChange={(e) => setNewDoctor(prev => ({ ...prev, postal_code: e.target.value }))}
                           />
                         </div>
-                      </div>
-                    </div>
-                  </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
 
                   {/* Bio */}
                   <div className="space-y-2">
@@ -1367,6 +1410,10 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="role-management">
+            <AdminRoleManager />
           </TabsContent>
 
           <TabsContent value="settings">

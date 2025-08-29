@@ -22,6 +22,7 @@ import { AdminAccess } from "./components/AdminAccess";
 import BookingHistory from "./pages/BookingHistory";
 import PatientDashboard from "./pages/PatientDashboard";
 import EmailVerification from "./pages/EmailVerification";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -31,28 +32,35 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/memberships" element={<Memberships />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/legal" element={<Legal />} />
-            <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/search" element={<DoctorSearch />} />
-            <Route path="/book/:doctorId" element={<BookAppointment />} />
-            <Route path="/booking-success" element={<BookingSuccess />} />
-            <Route path="/demo" element={<DemoLogin />} />
-            <Route path="/doctor" element={<DoctorDashboard />} />
-            <Route path="/admin-access" element={<AdminAccess />} />
-            <Route path="/bookings" element={<BookingHistory />} />
-            <Route path="/dashboard" element={<PatientDashboard />} />
-            <Route path="/verify-email" element={<EmailVerification />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <FloatingButtons />
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/memberships" element={<Memberships />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/legal" element={<Legal />} />
+              <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/search" element={<DoctorSearch />} />
+              <Route path="/book/:doctorId" element={<BookAppointment />} />
+              <Route path="/booking-success" element={<BookingSuccess />} />
+              <Route path="/demo" element={<DemoLogin />} />
+              <Route path="/doctor" element={<DoctorDashboard />} />
+              <Route path="/admin-access" element={<AdminAccess />} />
+              <Route path="/bookings" element={<BookingHistory />} />
+              <Route path="/dashboard" element={<PatientDashboard />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <FloatingButtons />
+          </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
