@@ -86,89 +86,29 @@ const DemoLogin = () => {
       const { error } = await signIn(account.email, account.password);
       
       if (error) {
-        // If login fails, create the demo account
-        console.log('Demo account not found, creating...', error.message);
-        
-        // Sign up the demo user
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: account.email,
-          password: account.password,
-          options: {
-            data: {
-              first_name: account.name.split(' ')[0],
-              last_name: account.name.split(' ').slice(1).join(' '),
-              role: account.role
-            }
+        // Seed demo user via Edge Function using service role (bypasses domain allowlist)
+        console.log('Demo account not found; seeding via function...', error.message);
+        const nameParts = account.name.split(' ');
+        const first_name = nameParts[0];
+        const last_name = nameParts.slice(1).join(' ');
+
+        const { data: seedData, error: seedError } = await supabase.functions.invoke('seed-demo-user', {
+          body: {
+            email: account.email,
+            password: account.password,
+            role: account.role,
+            first_name,
+            last_name
           }
         });
 
-        if (signUpError) throw signUpError;
-
-        if (signUpData.user) {
-          // Verify the user immediately for demo purposes
-          await supabase.auth.admin.updateUserById(signUpData.user.id, {
-            email_confirm: true
-          });
-
-          // Create profile with correct role
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: signUpData.user.id,
-              email: account.email,
-              first_name: account.name.split(' ')[0],
-              last_name: account.name.split(' ').slice(1).join(' '),
-              role: account.role
-            });
-
-          // If it's a doctor, create a doctor record
-          if (account.role === 'doctor') {
-            // Create doctor profile
-            await supabase
-              .from('doctors')
-              .insert({
-                user_id: signUpData.user.id,
-                practice_name: 'Demo Medical Practice',
-                speciality: 'General Practitioner',
-                qualification: 'MBChB, University of Cape Town',
-                license_number: 'MP123456',
-                years_experience: 10,
-                consultation_fee: 45000,
-                address: '123 Demo Street',
-                city: 'Cape Town',
-                province: 'Western Cape',
-                postal_code: '8001',
-                bio: 'Experienced general practitioner dedicated to providing quality healthcare.',
-                rating: 4.8,
-                total_bookings: 150,
-                is_available: true
-              });
-
-            // Seed default weekly schedule (Mon-Fri 09:00-17:00)
-            const { data: doctorRow } = await supabase
-              .from('doctors')
-              .select('id')
-              .eq('user_id', signUpData.user.id)
-              .single();
-
-            if (doctorRow?.id) {
-              const days = [1, 2, 3, 4, 5];
-              const scheduleRows = days.map((d) => ({
-                doctor_id: doctorRow.id,
-                day_of_week: d,
-                start_time: '09:00',
-                end_time: '17:00',
-                is_available: true
-              }));
-              // Insert schedules; ignore errors if they already exist
-              await supabase.from('doctor_schedules').insert(scheduleRows).select('*');
-            }
-          }
-
-          // Now sign in with the created account
-          const { error: loginError } = await signIn(account.email, account.password);
-          if (loginError) throw loginError;
+        if (seedError || !seedData?.success) {
+          throw new Error(seedError?.message || seedData?.error || 'Failed to seed demo user');
         }
+
+        // Try sign in again
+        const { error: loginErrorAfterSeed } = await signIn(account.email, account.password);
+        if (loginErrorAfterSeed) throw loginErrorAfterSeed;
       }
 
       toast({
