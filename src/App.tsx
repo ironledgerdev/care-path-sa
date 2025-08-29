@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { FloatingButtons } from "./components/FloatingButtons";
 import VoiceInterface from "./components/VoiceInterface";
@@ -80,6 +80,8 @@ const App = () => {
                         <Route path="/legal" element={<Legal />} />
                         <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
                         <Route path="/book-appointments" element={<BookAppointments />} />
+                        <Route path="/BookAppointment" element={<Navigate to="/book-appointments" replace />} />
+                        <Route path="/book-appointment" element={<Navigate to="/book-appointments" replace />} />
                         <Route path="/telemedicine" element={<Telemedicine />} />
                         <Route path="/doctor-portal" element={<DoctorPortal />} />
                         <Route path="/practice-management" element={<PracticeManagement />} />
