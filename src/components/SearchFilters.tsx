@@ -4,12 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 
-const SearchFilters = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [location, setLocation] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [priceRange, setPriceRange] = useState('');
+interface SearchFiltersProps {
+  onSearch?: (filters: SearchFilters) => void;
+  initialFilters?: SearchFilters;
+}
+
+export interface SearchFilters {
+  searchTerm: string;
+  location: string;
+  specialty: string;
+  priceRange: string;
+  zipCode: string;
+}
+
+const SearchFilters = ({ onSearch, initialFilters }: SearchFiltersProps) => {
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm || '');
+  const [location, setLocation] = useState(initialFilters?.location || '');
+  const [specialty, setSpecialty] = useState(initialFilters?.specialty || '');
+  const [priceRange, setPriceRange] = useState(initialFilters?.priceRange || '');
+  const [zipCode, setZipCode] = useState(initialFilters?.zipCode || '');
+  const navigate = useNavigate();
 
   const specialties = [
     'General Practitioner',
@@ -43,6 +59,47 @@ const SearchFilters = () => {
     'North West',
     'Northern Cape'
   ];
+
+  const handleSearch = () => {
+    const filters: SearchFilters = {
+      searchTerm,
+      location,
+      specialty,
+      priceRange,
+      zipCode
+    };
+
+    // If onSearch prop is provided, call it (for embedded use)
+    if (onSearch) {
+      onSearch(filters);
+    } else {
+      // Navigate to search page with filters as URL params
+      const searchParams = new URLSearchParams();
+      if (searchTerm) searchParams.set('search', searchTerm);
+      if (location) searchParams.set('location', location);
+      if (specialty) searchParams.set('specialty', specialty);
+      if (priceRange) searchParams.set('price', priceRange);
+      if (zipCode) searchParams.set('zip', zipCode);
+      
+      navigate(`/search?${searchParams.toString()}`);
+    }
+  };
+
+  const handleQuickFilter = (filter: string) => {
+    const filters: SearchFilters = {
+      searchTerm: filter,
+      location: '',
+      specialty: '',
+      priceRange: '',
+      zipCode: ''
+    };
+
+    if (onSearch) {
+      onSearch(filters);
+    } else {
+      navigate(`/search?search=${encodeURIComponent(filter)}`);
+    }
+  };
 
   return (
     <Card className="medical-search w-full max-w-6xl mx-auto">
@@ -116,6 +173,8 @@ const SearchFilters = () => {
           <div className="flex-1">
             <Input
               placeholder="Zip code (optional)"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
               className="h-12 bg-background/50 border-primary/20 focus:border-primary"
             />
           </div>
@@ -133,6 +192,7 @@ const SearchFilters = () => {
             <Button
               size="lg" 
               className="btn-medical-primary flex items-center gap-2 px-8"
+              onClick={handleSearch}
             >
               <Search className="h-4 w-4" />
               Find Doctors
@@ -150,6 +210,7 @@ const SearchFilters = () => {
                 variant="outline"
                 size="sm"
                 className="text-xs border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => handleQuickFilter(filter)}
               >
                 {filter}
               </Button>

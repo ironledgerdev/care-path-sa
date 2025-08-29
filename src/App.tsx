@@ -19,6 +19,9 @@ import BookingSuccess from "./pages/BookingSuccess";
 import DemoLogin from "./pages/DemoLogin";
 import NotFound from "./pages/NotFound";
 import { AdminAccess } from "./components/AdminAccess";
+import BookingHistory from "./pages/BookingHistory";
+import PatientDashboard from "./pages/PatientDashboard";
+import EmailVerification from "./pages/EmailVerification";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +46,9 @@ const App = () => (
             <Route path="/demo" element={<DemoLogin />} />
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/admin-access" element={<AdminAccess />} />
+            <Route path="/bookings" element={<BookingHistory />} />
+            <Route path="/dashboard" element={<PatientDashboard />} />
+            <Route path="/verify-email" element={<EmailVerification />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

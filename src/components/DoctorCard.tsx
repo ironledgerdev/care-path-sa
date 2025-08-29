@@ -3,9 +3,11 @@ import { MapPin, Clock, Star, Shield, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface DoctorCardProps {
   doctor: {
+    id?: string;
     name: string;
     specialty: string;
     location: string;
@@ -22,6 +24,26 @@ interface DoctorCardProps {
 }
 
 const DoctorCard = ({ doctor }: DoctorCardProps) => {
+  const navigate = useNavigate();
+
+  const handleBookNow = () => {
+    if (doctor.id) {
+      navigate(`/book/${doctor.id}`);
+    } else {
+      // For demo data without ID, navigate to search page
+      navigate('/search');
+    }
+  };
+
+  const handleViewProfile = () => {
+    if (doctor.id) {
+      // TODO: Implement doctor profile page
+      navigate(`/doctor-profile/${doctor.id}`);
+    } else {
+      // For demo data, show a placeholder
+      navigate('/search');
+    }
+  };
   return (
     <Card className="medical-card hover:scale-105 transition-all duration-300">
       <CardContent className="p-6">
@@ -84,11 +106,11 @@ const DoctorCard = ({ doctor }: DoctorCardProps) => {
 
             {/* Actions */}
             <div className="flex gap-2">
-              <Button className="btn-medical-primary flex-1">
+              <Button className="btn-medical-primary flex-1" onClick={handleBookNow}>
                 <Calendar className="h-4 w-4 mr-2" />
                 Book Now
               </Button>
-              <Button variant="outline" className="btn-medical-secondary">
+              <Button variant="outline" className="btn-medical-secondary" onClick={handleViewProfile}>
                 View Profile
               </Button>
             </div>

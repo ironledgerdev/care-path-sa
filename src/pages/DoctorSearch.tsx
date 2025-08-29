@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import SearchFilters, { SearchFilters as SearchFiltersType } from '@/components/SearchFilters';
 
 interface Doctor {
   id: string;
@@ -43,7 +44,17 @@ const DoctorSearch = () => {
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [priceRange, setPriceRange] = useState('');
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // Initialize filters from URL params
+  const initialFilters: SearchFiltersType = {
+    searchTerm: searchParams.get('search') || '',
+    location: searchParams.get('location') || '',
+    specialty: searchParams.get('specialty') || '',
+    priceRange: searchParams.get('price') || '',
+    zipCode: searchParams.get('zip') || ''
+  };
 
   const specialties = [
     'General Practitioner',
