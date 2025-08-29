@@ -123,6 +123,7 @@ const DemoLogin = () => {
 
           // If it's a doctor, create a doctor record
           if (account.role === 'doctor') {
+            // Create doctor profile
             await supabase
               .from('doctors')
               .insert({
@@ -132,7 +133,7 @@ const DemoLogin = () => {
                 qualification: 'MBChB, University of Cape Town',
                 license_number: 'MP123456',
                 years_experience: 10,
-                consultation_fee: 45000, // R450
+                consultation_fee: 45000,
                 address: '123 Demo Street',
                 city: 'Cape Town',
                 province: 'Western Cape',
@@ -142,6 +143,26 @@ const DemoLogin = () => {
                 total_bookings: 150,
                 is_available: true
               });
+
+            // Seed default weekly schedule (Mon-Fri 09:00-17:00)
+            const { data: doctorRow } = await supabase
+              .from('doctors')
+              .select('id')
+              .eq('user_id', signUpData.user.id)
+              .single();
+
+            if (doctorRow?.id) {
+              const days = [1, 2, 3, 4, 5];
+              const scheduleRows = days.map((d) => ({
+                doctor_id: doctorRow.id,
+                day_of_week: d,
+                start_time: '09:00',
+                end_time: '17:00',
+                is_available: true
+              }));
+              // Insert schedules; ignore errors if they already exist
+              await supabase.from('doctor_schedules').insert(scheduleRows).select('*');
+            }
           }
 
           // Now sign in with the created account
