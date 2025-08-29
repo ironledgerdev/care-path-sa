@@ -14,7 +14,349 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          booking_fee: number
+          consultation_fee: number
+          created_at: string
+          created_by: string | null
+          doctor_id: string
+          doctor_notes: string | null
+          id: string
+          patient_notes: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          booking_fee?: number
+          consultation_fee: number
+          created_at?: string
+          created_by?: string | null
+          doctor_id: string
+          doctor_notes?: string | null
+          id?: string
+          patient_notes?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          booking_fee?: number
+          consultation_fee?: number
+          created_at?: string
+          created_by?: string | null
+          doctor_id?: string
+          doctor_notes?: string | null
+          id?: string
+          patient_notes?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_schedules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_schedules_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctors: {
+        Row: {
+          address: string
+          approved_at: string | null
+          approved_by: string | null
+          bio: string | null
+          city: string
+          consultation_fee: number
+          created_at: string
+          id: string
+          is_available: boolean | null
+          license_number: string
+          postal_code: string
+          practice_name: string
+          profile_image_url: string | null
+          province: string
+          qualification: string
+          rating: number | null
+          speciality: string
+          total_bookings: number | null
+          updated_at: string
+          user_id: string
+          years_experience: number | null
+        }
+        Insert: {
+          address: string
+          approved_at?: string | null
+          approved_by?: string | null
+          bio?: string | null
+          city: string
+          consultation_fee: number
+          created_at?: string
+          id?: string
+          is_available?: boolean | null
+          license_number: string
+          postal_code: string
+          practice_name: string
+          profile_image_url?: string | null
+          province: string
+          qualification: string
+          rating?: number | null
+          speciality: string
+          total_bookings?: number | null
+          updated_at?: string
+          user_id: string
+          years_experience?: number | null
+        }
+        Update: {
+          address?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          bio?: string | null
+          city?: string
+          consultation_fee?: number
+          created_at?: string
+          id?: string
+          is_available?: boolean | null
+          license_number?: string
+          postal_code?: string
+          practice_name?: string
+          profile_image_url?: string | null
+          province?: string
+          qualification?: string
+          rating?: number | null
+          speciality?: string
+          total_bookings?: number | null
+          updated_at?: string
+          user_id?: string
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          free_bookings_remaining: number | null
+          id: string
+          is_active: boolean | null
+          membership_type: Database["public"]["Enums"]["membership_type"]
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          free_bookings_remaining?: number | null
+          id?: string
+          is_active?: boolean | null
+          membership_type?: Database["public"]["Enums"]["membership_type"]
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          free_bookings_remaining?: number | null
+          id?: string
+          is_active?: boolean | null
+          membership_type?: Database["public"]["Enums"]["membership_type"]
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pending_doctors: {
+        Row: {
+          address: string
+          admin_notes: string | null
+          bio: string | null
+          city: string
+          consultation_fee: number
+          created_at: string
+          id: string
+          license_number: string
+          postal_code: string
+          practice_name: string
+          profile_image_url: string | null
+          province: string
+          qualification: string
+          qualification_documents: string[] | null
+          speciality: string
+          status: Database["public"]["Enums"]["doctor_status"]
+          updated_at: string
+          user_id: string
+          years_experience: number | null
+        }
+        Insert: {
+          address: string
+          admin_notes?: string | null
+          bio?: string | null
+          city: string
+          consultation_fee: number
+          created_at?: string
+          id?: string
+          license_number: string
+          postal_code: string
+          practice_name: string
+          profile_image_url?: string | null
+          province: string
+          qualification: string
+          qualification_documents?: string[] | null
+          speciality: string
+          status?: Database["public"]["Enums"]["doctor_status"]
+          updated_at?: string
+          user_id: string
+          years_experience?: number | null
+        }
+        Update: {
+          address?: string
+          admin_notes?: string | null
+          bio?: string | null
+          city?: string
+          consultation_fee?: number
+          created_at?: string
+          id?: string
+          license_number?: string
+          postal_code?: string
+          practice_name?: string
+          profile_image_url?: string | null
+          province?: string
+          qualification?: string
+          qualification_documents?: string[] | null
+          speciality?: string
+          status?: Database["public"]["Enums"]["doctor_status"]
+          updated_at?: string
+          user_id?: string
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +365,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      booking_status: "pending" | "confirmed" | "completed" | "cancelled"
+      doctor_status: "pending" | "approved" | "rejected" | "suspended"
+      membership_type: "basic" | "premium"
+      user_role: "patient" | "doctor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +495,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      booking_status: ["pending", "confirmed", "completed", "cancelled"],
+      doctor_status: ["pending", "approved", "rejected", "suspended"],
+      membership_type: ["basic", "premium"],
+      user_role: ["patient", "doctor", "admin"],
+    },
   },
 } as const
