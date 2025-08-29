@@ -372,7 +372,11 @@ const DoctorSearch = () => {
                           <Calendar className="h-4 w-4 mr-2" />
                           Book Appointment
                         </Button>
-                        <Button variant="outline" className="btn-medical-secondary">
+                        <Button 
+                          variant="outline" 
+                          className="btn-medical-secondary"
+                          onClick={() => navigate(`/doctor/${doctor.id}`)}
+                        >
                           View Profile
                         </Button>
                       </div>

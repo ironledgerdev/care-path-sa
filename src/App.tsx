@@ -14,6 +14,7 @@ import DoctorEnrollment from "./pages/DoctorEnrollment";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorSearch from "./pages/DoctorSearch";
+import DoctorProfile from "./pages/DoctorProfile";
 import BookAppointment from "./pages/BookAppointment";
 import BookingSuccess from "./pages/BookingSuccess";
 import DemoLogin from "./pages/DemoLogin";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/doctor-enrollment" element={<DoctorEnrollment />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/search" element={<DoctorSearch />} />
+              <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
               <Route path="/book/:doctorId" element={<BookAppointment />} />
               <Route path="/booking-success" element={<BookingSuccess />} />
               <Route path="/demo" element={<DemoLogin />} />

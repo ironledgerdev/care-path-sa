@@ -37,8 +37,7 @@ const DoctorCard = ({ doctor }: DoctorCardProps) => {
 
   const handleViewProfile = () => {
     if (doctor.id) {
-      // TODO: Implement doctor profile page
-      navigate(`/doctor-profile/${doctor.id}`);
+      navigate(`/doctor/${doctor.id}`);
     } else {
       // For demo data, show a placeholder
       navigate('/search');
