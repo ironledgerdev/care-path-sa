@@ -36,6 +36,7 @@ const Team = () => {
       role: 'Director of Customer Service',
       icon: <Phone className="h-6 w-6" />,
       image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F0486c5972e4f4e07aa15aeb1f4a7650a?format=webp&width=800',
+      imagePosition: 'top',
       description: 'Customer experience champion ensuring every interaction exceeds expectations. Dedicated to building trust and satisfaction among our community.',
       gradient: 'from-purple-500 to-purple-600',
       expertise: ['Customer Experience', 'Support Operations', 'Relationship Management', 'Service Excellence']
@@ -111,7 +112,7 @@ const Team = () => {
                     <img
                       src={(member as any).image}
                       alt={member.name}
-                      className="w-20 h-20 rounded-2xl object-cover ring-2 ring-primary/30 flex-shrink-0"
+                      className={`w-20 h-20 rounded-2xl object-cover ${('imagePosition' in (member as any) && (member as any).imagePosition === 'top') ? 'object-top' : 'object-center'} ring-2 ring-primary/30 flex-shrink-0`}
                       loading="lazy"
                     />
                   ) : (
