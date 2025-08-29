@@ -461,6 +461,13 @@ const AdminDashboardContent = () => {
 
       if (insertError) throw insertError;
 
+      // Update profile role to doctor
+      const { error: roleError } = await supabase
+        .from('profiles')
+        .update({ role: 'doctor', updated_at: new Date().toISOString() })
+        .eq('id', pendingDoctor.user_id);
+      if (roleError) throw roleError;
+
       // Update pending status
       const { error: updateError } = await supabase
         .from('pending_doctors')
@@ -468,6 +475,19 @@ const AdminDashboardContent = () => {
         .eq('id', doctorId);
 
       if (updateError) throw updateError;
+
+      // Notify doctor approved
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'doctor_approved',
+            data: {
+              doctor_name: `${pendingDoctor.practice_name}`,
+              doctor_email: ''
+            }
+          }
+        });
+      } catch (_e) {}
 
       toast({
         title: "Success",
