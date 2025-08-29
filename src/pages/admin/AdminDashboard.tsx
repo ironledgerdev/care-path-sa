@@ -284,10 +284,16 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center">
+          <CardContent className="pt-6 text-center space-y-4">
             <XCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">You don't have permission to access the admin dashboard.</p>
+            <p className="text-muted-foreground mb-4">You don't have permission to access the admin dashboard.</p>
+            <Button 
+              onClick={() => window.location.href = '/admin-access'}
+              className="btn-medical-primary"
+            >
+              Go to Admin Access
+            </Button>
           </CardContent>
         </Card>
       </div>
