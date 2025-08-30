@@ -16,6 +16,8 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface PendingDoctor {
   id: string;
