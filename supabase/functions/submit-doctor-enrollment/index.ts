@@ -30,7 +30,7 @@ interface ApplicantInfo {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
