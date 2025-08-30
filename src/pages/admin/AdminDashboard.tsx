@@ -463,7 +463,7 @@ const AdminDashboardContent = () => {
           bio: pendingDoctor.bio,
           is_available: true,
           approved_at: new Date().toISOString(),
-          approved_by: profile?.email ? profile.email : null,
+          approved_by: profile?.id || null,
         });
       if (insertError) throw insertError;
 
@@ -487,8 +487,8 @@ const AdminDashboardContent = () => {
           body: {
             type: 'doctor_approved',
             data: {
-              doctor_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || pendingDoctor.practice_name,
-              doctor_email: profile?.email,
+              doctor_name: `${doctorProfile?.first_name || ''} ${doctorProfile?.last_name || ''}`.trim() || pendingDoctor.practice_name,
+              doctor_email: doctorProfile?.email,
               practice_name: pendingDoctor.practice_name,
               speciality: pendingDoctor.speciality,
             }
