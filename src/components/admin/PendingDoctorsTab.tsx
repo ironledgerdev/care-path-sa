@@ -269,6 +269,34 @@ export const PendingDoctorsTab = ({
           </Table>
         )}
       </CardContent>
+      <Dialog open={!!viewDoctor} onOpenChange={(open) => !open && setViewDoctor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Doctor Application Details</DialogTitle>
+            <DialogDescription>Review the submitted information.</DialogDescription>
+          </DialogHeader>
+          {viewDoctor && (
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-muted-foreground">Name:</span> {viewDoctor.profiles.first_name} {viewDoctor.profiles.last_name}</div>
+                <div><span className="text-muted-foreground">Email:</span> {viewDoctor.profiles.email}</div>
+                <div><span className="text-muted-foreground">Practice:</span> {viewDoctor.practice_name}</div>
+                <div><span className="text-muted-foreground">Specialty:</span> {viewDoctor.speciality}</div>
+                <div><span className="text-muted-foreground">License:</span> {viewDoctor.license_number}</div>
+                <div><span className="text-muted-foreground">Experience:</span> {viewDoctor.years_experience} years</div>
+                <div><span className="text-muted-foreground">Fee:</span> R{(viewDoctor.consultation_fee/100).toFixed(2)}</div>
+                <div><span className="text-muted-foreground">Status:</span> {viewDoctor.status}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">Address:</span> {viewDoctor.address}, {viewDoctor.city}, {viewDoctor.province}, {viewDoctor.postal_code}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">Bio:</span> {viewDoctor.bio}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button disabled={isLoading || !viewDoctor} onClick={() => viewDoctor && onApprove(viewDoctor.id)} className="btn-medical-primary">Approve</Button>
+            <Button variant="destructive" disabled={isLoading || !viewDoctor} onClick={() => viewDoctor && onReject(viewDoctor.id)}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
