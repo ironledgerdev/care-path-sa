@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
 
 interface PendingDoctor {
@@ -36,20 +48,47 @@ interface PendingDoctorsTabProps {
   isLoading: boolean;
 }
 
-export const PendingDoctorsTab = ({ 
-  pendingDoctors, 
-  onApprove, 
-  onReject, 
-  onView, 
-  isLoading 
+export const PendingDoctorsTab = ({
+  pendingDoctors,
+  onApprove,
+  onReject,
+  onView,
+  isLoading
 }: PendingDoctorsTabProps) => {
+  const [query, setQuery] = useState('');
+  const [approveId, setApproveId] = useState<string | null>(null);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return pendingDoctors;
+    return pendingDoctors.filter((d) => {
+      const fullName = `${d.profiles.first_name} ${d.profiles.last_name}`.toLowerCase();
+      return (
+        fullName.includes(q) ||
+        d.profiles.email.toLowerCase().includes(q) ||
+        d.practice_name.toLowerCase().includes(q) ||
+        d.speciality.toLowerCase().includes(q) ||
+        d.license_number.toLowerCase().includes(q)
+      );
+    });
+  }, [pendingDoctors, query]);
+
   return (
     <Card className="medical-hero-card">
       <CardHeader>
         <CardTitle>Pending Doctor Applications</CardTitle>
       </CardHeader>
       <CardContent>
-        {pendingDoctors.length === 0 ? (
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <Input
+            placeholder="Search by name, email, specialty, practice, or license"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
+        {filtered.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No pending applications</p>
           </div>
@@ -69,7 +108,7 @@ export const PendingDoctorsTab = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pendingDoctors.map((doctor) => (
+              {filtered.map((doctor) => (
                 <TableRow key={doctor.id}>
                   <TableCell className="font-medium">
                     {doctor.profiles.first_name} {doctor.profiles.last_name}
@@ -95,23 +134,56 @@ export const PendingDoctorsTab = ({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => onApprove(doctor.id)}
-                        disabled={isLoading}
-                        className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => onReject(doctor.id)}
-                        disabled={isLoading}
-                        className="h-8 w-8 p-0"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            disabled={isLoading}
+                            onClick={() => setApproveId(doctor.id)}
+                            className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Approve doctor?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Approving will move this application to active doctors and update their role.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setApproveId(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => { if (approveId) onApprove(approveId); setApproveId(null); }}>Approve</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={isLoading}
+                            onClick={() => setRejectId(doctor.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reject application?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will mark the application as rejected. You can change it later if needed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setRejectId(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => { if (rejectId) onReject(rejectId); setRejectId(null); }}>Reject</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
