@@ -87,7 +87,11 @@ export const DoctorEnrollmentForm = () => {
           const { data: sessionData } = await supabase.auth.getSession();
           const token = sessionData.session?.access_token;
 
-          const resp = await fetch(`${SUPABASE_URL}/functions/v1/submit-doctor-enrollment`, {
+          const host = new URL(SUPABASE_URL).hostname; // e.g. irvwoushpskgonjwwmap.supabase.co
+          const projectRef = host.split('.')[0];
+          const fnUrl = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
+
+          const resp = await fetch(fnUrl, {
             method: 'POST',
             mode: 'cors',
             credentials: 'omit',
@@ -103,7 +107,8 @@ export const DoctorEnrollmentForm = () => {
             const json = await resp.json();
             success = Boolean(json?.success);
           } else {
-            finalError = new Error(`Edge Function HTTP ${resp.status}`);
+            const text = await resp.text().catch(() => '');
+            finalError = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
           }
         } catch (fallbackErr: any) {
           finalError = fallbackErr;
