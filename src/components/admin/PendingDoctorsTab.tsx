@@ -206,7 +206,7 @@ export const PendingDoctorsTab = ({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onView(doctor)}
+                        onClick={() => { setViewDoctor(doctor); onView(doctor); }}
                         className="h-8 w-8 p-0"
                       >
                         <Eye className="h-4 w-4" />
