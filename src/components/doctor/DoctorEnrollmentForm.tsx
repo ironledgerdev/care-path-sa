@@ -219,18 +219,18 @@ export const DoctorEnrollmentForm = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="speciality">Specialty *</Label>
-                    <Select value={formData.speciality} onValueChange={(value) => handleInputChange('speciality', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your specialty" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={5} avoidCollisions={false} hideWhenDetached>
-                        {specialties.map((specialty) => (
-                          <SelectItem key={specialty} value={specialty}>
-                            {specialty}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      id="speciality"
+                      value={formData.speciality}
+                      onChange={(e) => handleInputChange('speciality', e.target.value)}
+                      required
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select your specialty</option>
+                      {specialties.map((specialty) => (
+                        <option key={specialty} value={specialty}>{specialty}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -306,18 +306,18 @@ export const DoctorEnrollmentForm = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="province">Province *</Label>
-                      <Select value={formData.province} onValueChange={(value) => handleInputChange('province', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select province" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {southAfricanProvinces.map((province) => (
-                            <SelectItem key={province} value={province}>
-                              {province}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="province"
+                        value={formData.province}
+                        onChange={(e) => handleInputChange('province', e.target.value)}
+                        required
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="" disabled>Select province</option>
+                        {southAfricanProvinces.map((province) => (
+                          <option key={province} value={province}>{province}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="postal_code">Postal Code *</Label>
