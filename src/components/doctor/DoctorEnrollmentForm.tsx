@@ -69,6 +69,7 @@ export const DoctorEnrollmentForm = () => {
 
     setIsLoading(true);
     try {
+      // 1) Primary path: invoke via supabase-js
       const { data, error } = await supabase.functions.invoke('submit-doctor-enrollment', {
         body: {
           form: formData,
@@ -76,8 +77,39 @@ export const DoctorEnrollmentForm = () => {
         }
       });
 
-      if (error || !data?.success) {
-        // Fallback: if user is logged in, insert pending_doctors directly
+      let success = Boolean(data?.success && !error);
+      let finalError: any = error;
+
+      // 2) Fallback: direct fetch to functions endpoint (handles rare transport errors)
+      if (!success) {
+        try {
+          const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = await import('@/integrations/supabase/client');
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/submit-doctor-enrollment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ form: formData, applicant: user ? undefined : applicant })
+          });
+
+          if (resp.ok) {
+            const json = await resp.json();
+            success = Boolean(json?.success);
+          } else {
+            finalError = new Error(`Edge Function HTTP ${resp.status}`);
+          }
+        } catch (fallbackErr: any) {
+          finalError = fallbackErr;
+        }
+      }
+
+      if (!success) {
+        // 3) Last resort for logged-in users: write directly to pending_doctors
         if (user) {
           const { error: insertError } = await supabase
             .from('pending_doctors')
@@ -86,6 +118,7 @@ export const DoctorEnrollmentForm = () => {
               ...formData,
               consultation_fee: parseInt(formData.consultation_fee) * 100,
               years_experience: parseInt(formData.years_experience),
+              status: 'pending',
             });
           if (insertError) throw insertError;
 
@@ -94,14 +127,14 @@ export const DoctorEnrollmentForm = () => {
             description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
           });
         } else {
-          throw new Error(data?.error || error?.message || 'Edge Function unavailable');
+          throw new Error(finalError?.message || 'Edge Function unavailable');
         }
       } else {
         toast({
-          title: "Application Submitted",
-          description: user ?
-            "Your application has been submitted for review. We'll contact you within 2-3 business days." :
-            "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
+          title: 'Application Submitted',
+          description: user
+            ? "Your application has been submitted for review. We'll contact you within 2-3 business days."
+            : "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
         });
       }
 
