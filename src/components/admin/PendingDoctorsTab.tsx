@@ -84,13 +84,63 @@ export const PendingDoctorsTab = ({
         <CardTitle>Pending Doctor Applications</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col gap-3 mb-4 md:flex-row md:items-center md:justify-between">
           <Input
             placeholder="Search by name, email, specialty, practice, or license"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="max-w-md"
           />
+          <div className="flex items-center gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={isLoading || selected.size === 0} className="btn-medical-primary">
+                  Approve Selected ({selected.size})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Approve {selected.size} application(s)?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will create doctor profiles and update their roles.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    for (const id of Array.from(selected)) {
+                      await Promise.resolve(onApprove(id));
+                    }
+                    setSelected(new Set());
+                  }}>Approve</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isLoading || selected.size === 0}>
+                  Reject Selected ({selected.size})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reject {selected.size} application(s)?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark them as rejected. You can change later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    for (const id of Array.from(selected)) {
+                      await Promise.resolve(onReject(id));
+                    }
+                    setSelected(new Set());
+                  }}>Reject</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
         {filtered.length === 0 ? (
           <div className="text-center py-12">
