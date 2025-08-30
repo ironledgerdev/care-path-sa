@@ -60,6 +60,8 @@ export const PendingDoctorsTab = ({
   const [query, setQuery] = useState('');
   const [approveId, setApproveId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewDoctor, setViewDoctor] = useState<PendingDoctor | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
