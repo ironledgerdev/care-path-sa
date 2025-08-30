@@ -150,6 +150,16 @@ export const PendingDoctorsTab = ({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8">
+                  <Checkbox
+                    checked={selected.size > 0 && selected.size === filtered.length}
+                    onCheckedChange={(v) => {
+                      if (v) setSelected(new Set(filtered.map((d) => d.id)));
+                      else setSelected(new Set());
+                    }}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Practice</TableHead>
