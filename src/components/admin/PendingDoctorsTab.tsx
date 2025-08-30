@@ -174,6 +174,19 @@ export const PendingDoctorsTab = ({
             <TableBody>
               {filtered.map((doctor) => (
                 <TableRow key={doctor.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selected.has(doctor.id)}
+                      onCheckedChange={(v) => {
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(doctor.id); else next.delete(doctor.id);
+                          return next;
+                        });
+                      }}
+                      aria-label={`Select ${doctor.profiles.first_name} ${doctor.profiles.last_name}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     {doctor.profiles.first_name} {doctor.profiles.last_name}
                   </TableCell>
