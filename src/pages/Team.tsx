@@ -19,7 +19,7 @@ const Team = () => {
       name: 'Tshepo Nomtshongwa',
       role: 'Chief Operating Officer',
       icon: <Users className="h-6 w-6" />,
-      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F232277f7f58245bcab2409b01c4f5ab4?format=webp&width=800',
+      image: 'https://cdn.builder.io/api/v1/image/assets%2Faf68e484decf46379ccbfc0f4be45e74%2F066892fc0be64bc9abc64d28cf414f8a?format=webp&width=800',
       description: 'Operations expert ensuring seamless platform functionality and exceptional user experience. Masters in optimizing healthcare delivery systems.',
       gradient: 'from-blue-500 to-blue-600',
       expertise: ['Operations Management', 'Process Optimization', 'Quality Assurance', 'Team Leadership']
