@@ -69,6 +69,7 @@ export const DoctorEnrollmentForm = () => {
 
     setIsLoading(true);
     try {
+      // 1) Primary path: invoke via supabase-js
       const { data, error } = await supabase.functions.invoke('submit-doctor-enrollment', {
         body: {
           form: formData,
@@ -76,8 +77,46 @@ export const DoctorEnrollmentForm = () => {
         }
       });
 
-      if (error || !data?.success) {
-        // Fallback: if user is logged in, insert pending_doctors directly
+      let success = Boolean(data?.success && !error);
+      let finalError: any = error;
+
+      // 2) Fallback: direct fetch to functions endpoint (handles rare transport errors)
+      if (!success) {
+        try {
+          const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = await import('@/integrations/supabase/client');
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+
+          const host = new URL(SUPABASE_URL).hostname; // e.g. irvwoushpskgonjwwmap.supabase.co
+          const projectRef = host.split('.')[0];
+          const fnUrl = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
+
+          const resp = await fetch(fnUrl, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ form: formData, applicant: user ? undefined : applicant })
+          });
+
+          if (resp.ok) {
+            const json = await resp.json();
+            success = Boolean(json?.success);
+          } else {
+            const text = await resp.text().catch(() => '');
+            finalError = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
+          }
+        } catch (fallbackErr: any) {
+          finalError = fallbackErr;
+        }
+      }
+
+      if (!success) {
+        // 3) Last resort for logged-in users: write directly to pending_doctors
         if (user) {
           const { error: insertError } = await supabase
             .from('pending_doctors')
@@ -86,6 +125,7 @@ export const DoctorEnrollmentForm = () => {
               ...formData,
               consultation_fee: parseInt(formData.consultation_fee) * 100,
               years_experience: parseInt(formData.years_experience),
+              status: 'pending',
             });
           if (insertError) throw insertError;
 
@@ -94,14 +134,15 @@ export const DoctorEnrollmentForm = () => {
             description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
           });
         } else {
-          throw new Error(data?.error || error?.message || 'Edge Function unavailable');
+          const msg = (finalError && (finalError.message || String(finalError))) || 'Edge Function unavailable';
+          throw new Error(msg.includes('Failed to fetch') ? 'Network/CORS issue calling Edge Function. Please sign in and try again, or retry later.' : msg);
         }
       } else {
         toast({
-          title: "Application Submitted",
-          description: user ?
-            "Your application has been submitted for review. We'll contact you within 2-3 business days." :
-            "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
+          title: 'Application Submitted',
+          description: user
+            ? "Your application has been submitted for review. We'll contact you within 2-3 business days."
+            : "Account invitation sent. Please verify your email; after admin approval you can access the Doctor Portal.",
         });
       }
 
@@ -185,18 +226,18 @@ export const DoctorEnrollmentForm = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="speciality">Specialty *</Label>
-                    <Select value={formData.speciality} onValueChange={(value) => handleInputChange('speciality', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your specialty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {specialties.map((specialty) => (
-                          <SelectItem key={specialty} value={specialty}>
-                            {specialty}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      id="speciality"
+                      value={formData.speciality}
+                      onChange={(e) => handleInputChange('speciality', e.target.value)}
+                      required
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="" disabled>Select your specialty</option>
+                      {specialties.map((specialty) => (
+                        <option key={specialty} value={specialty}>{specialty}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -272,18 +313,18 @@ export const DoctorEnrollmentForm = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="province">Province *</Label>
-                      <Select value={formData.province} onValueChange={(value) => handleInputChange('province', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select province" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {southAfricanProvinces.map((province) => (
-                            <SelectItem key={province} value={province}>
-                              {province}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="province"
+                        value={formData.province}
+                        onChange={(e) => handleInputChange('province', e.target.value)}
+                        required
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="" disabled>Select province</option>
+                        {southAfricanProvinces.map((province) => (
+                          <option key={province} value={province}>{province}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="postal_code">Postal Code *</Label>

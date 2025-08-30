@@ -387,7 +387,7 @@ export const useNotificationSystem = () => {
 
     channels.push(bookingChannel);
 
-    // Listen to profile changes for admin notifications
+    // Listen to profile changes and new applications for admin notifications
     if (user.user_metadata?.role === 'admin') {
       const profileChannel = supabase
         .channel('profile-notifications')
@@ -399,9 +399,9 @@ export const useNotificationSystem = () => {
             table: 'profiles'
           },
           (payload) => {
-            const profile = payload.new;
-            const oldProfile = payload.old;
-            
+            const profile = payload.new as any;
+            const oldProfile = payload.old as any;
+
             if (oldProfile.role !== profile.role && profile.role === 'doctor') {
               addNotification({
                 type: 'doctor_approved',
@@ -409,14 +409,40 @@ export const useNotificationSystem = () => {
                 message: `${profile.first_name} ${profile.last_name} has been approved as a doctor`,
                 category: 'doctor',
                 priority: 'medium',
-                metadata: { profile_id: profile.id }
+                metadata: { profile_id: profile.id },
+                actionUrl: '/admin',
               });
             }
           }
         )
         .subscribe();
 
+      const pendingDoctorsChannel = supabase
+        .channel('pending-doctors-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'pending_doctors'
+          },
+          (payload) => {
+            const application = payload.new as any;
+            addNotification({
+              type: 'system',
+              title: 'New Doctor Application',
+              message: `${application.practice_name} • ${application.speciality}`,
+              category: 'doctor',
+              priority: 'high',
+              metadata: { application_id: application.id, user_id: application.user_id },
+              actionUrl: '/admin',
+            });
+          }
+        )
+        .subscribe();
+
       channels.push(profileChannel);
+      channels.push(pendingDoctorsChannel);
     }
 
     return () => {

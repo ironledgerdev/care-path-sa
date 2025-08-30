@@ -428,19 +428,24 @@ const AdminDashboardContent = () => {
   };
 
   const handleApproveDoctor = async (doctorId: string) => {
-    // Implementation for approving doctor
     setIsLoading(true);
     try {
-      // Get the pending doctor data
+      // Get the pending doctor data with profile
       const { data: pendingDoctor, error: fetchError } = await supabase
         .from('pending_doctors')
         .select('*')
         .eq('id', doctorId)
         .single();
-
       if (fetchError) throw fetchError;
 
-      // Move to doctors table
+      const { data: doctorProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, email')
+        .eq('id', pendingDoctor.user_id)
+        .single();
+      if (profileError) throw profileError;
+
+      // Move to doctors table with approval metadata
       const { error: insertError } = await supabase
         .from('doctors')
         .insert({
@@ -456,9 +461,10 @@ const AdminDashboardContent = () => {
           province: pendingDoctor.province,
           postal_code: pendingDoctor.postal_code,
           bio: pendingDoctor.bio,
-          is_available: true
+          is_available: true,
+          approved_at: new Date().toISOString(),
+          approved_by: profile?.id || null,
         });
-
       if (insertError) throw insertError;
 
       // Update profile role to doctor
@@ -473,34 +479,35 @@ const AdminDashboardContent = () => {
         .from('pending_doctors')
         .update({ status: 'approved' })
         .eq('id', doctorId);
-
       if (updateError) throw updateError;
 
-      // Notify doctor approved
+      // Notify doctor approved via email
       try {
         await supabase.functions.invoke('send-email', {
           body: {
             type: 'doctor_approved',
             data: {
-              doctor_name: `${pendingDoctor.practice_name}`,
-              doctor_email: ''
+              doctor_name: `${doctorProfile?.first_name || ''} ${doctorProfile?.last_name || ''}`.trim() || pendingDoctor.practice_name,
+              doctor_email: doctorProfile?.email,
+              practice_name: pendingDoctor.practice_name,
+              speciality: pendingDoctor.speciality,
             }
           }
         });
       } catch (_e) {}
 
       toast({
-        title: "Success",
-        description: "Doctor approved successfully!",
+        title: 'Success',
+        description: 'Doctor approved successfully!',
       });
 
       fetchPendingDoctors();
       fetchDashboardStats();
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
