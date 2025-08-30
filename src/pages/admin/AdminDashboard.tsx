@@ -438,7 +438,7 @@ const AdminDashboardContent = () => {
         .single();
       if (fetchError) throw fetchError;
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: doctorProfile, error: profileError } = await supabase
         .from('profiles')
         .select('first_name, last_name, email')
         .eq('id', pendingDoctor.user_id)
