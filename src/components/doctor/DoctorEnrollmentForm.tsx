@@ -89,6 +89,8 @@ export const DoctorEnrollmentForm = () => {
 
           const resp = await fetch(`${SUPABASE_URL}/functions/v1/submit-doctor-enrollment`, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: {
               'Content-Type': 'application/json',
               'apikey': SUPABASE_PUBLISHABLE_KEY,
