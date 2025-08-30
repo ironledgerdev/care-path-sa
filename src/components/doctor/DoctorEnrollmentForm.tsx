@@ -223,7 +223,7 @@ export const DoctorEnrollmentForm = () => {
                       <SelectTrigger>
                         <SelectValue placeholder="Select your specialty" />
                       </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={5}>
+                      <SelectContent position="popper" sideOffset={5} avoidCollisions={false} hideWhenDetached>
                         {specialties.map((specialty) => (
                           <SelectItem key={specialty} value={specialty}>
                             {specialty}
