@@ -127,7 +127,8 @@ export const DoctorEnrollmentForm = () => {
             description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
           });
         } else {
-          throw new Error(finalError?.message || 'Edge Function unavailable');
+          const msg = (finalError && (finalError.message || String(finalError))) || 'Edge Function unavailable';
+          throw new Error(msg.includes('Failed to fetch') ? 'Network/CORS issue calling Edge Function. Please sign in and try again, or retry later.' : msg);
         }
       } else {
         toast({
