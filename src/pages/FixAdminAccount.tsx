@@ -48,10 +48,18 @@ const FixAdminAccount = () => {
 
       if (upsertError) {
         console.error('Direct upsert failed:', upsertError);
+        const errorMessage = upsertError.message || upsertError.error_description || JSON.stringify(upsertError);
+        const errorCode = upsertError.code || upsertError.error || 'unknown';
+
         return {
           success: false,
-          message: `Direct profile fix failed: ${upsertError.message}. This usually means the account doesn't exist in the auth system or RLS policies are blocking access.`,
-          error: upsertError
+          message: `Direct profile fix failed: ${errorMessage}. Error code: ${errorCode}`,
+          error: {
+            message: errorMessage,
+            code: errorCode,
+            details: upsertError,
+            hint: upsertError.hint || 'Check if the User ID exists in auth.users table'
+          }
         };
       }
 
