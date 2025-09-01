@@ -253,10 +253,20 @@ const FixAdminAccount = () => {
                         id: result.profile.id,
                         email: result.profile.email,
                         role: result.profile.role,
-                        name: `${result.profile.first_name} ${result.profile.last_name}`
+                        name: `${result.profile.firstName || result.profile.first_name} ${result.profile.lastName || result.profile.last_name}`
                       }, null, 2)}
                     </pre>
                   </div>
+                )}
+                {!result.success && result.error && (
+                  <details className="mt-3">
+                    <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+                      Show technical details
+                    </summary>
+                    <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-32">
+                      {JSON.stringify(result.error, null, 2)}
+                    </pre>
+                  </details>
                 )}
               </div>
             )}
