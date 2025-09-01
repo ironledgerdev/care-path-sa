@@ -103,6 +103,7 @@ const App = () => {
                         <Route path="/bookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/doctor" element={<DoctorDashboard />} />
                         <Route path="/create-admin-account" element={<CreateAdminAccount />} />
+                        <Route path="/admin-setup" element={<AdminSetup />} />
                         <Route path="/bookings" element={<BookingHistory />} />
                         <Route path="/BookingHistory" element={<BookingHistory />} />
                         <Route path="/booking-history" element={<BookingHistory />} />
