@@ -75,18 +75,41 @@ const FixAdminAccount = () => {
         .single();
 
       if (upsertError) {
-        console.error('Direct upsert failed:', upsertError);
+        console.error('❌ Direct upsert failed:', upsertError);
         const errorMessage = upsertError.message || upsertError.error_description || JSON.stringify(upsertError);
         const errorCode = upsertError.code || upsertError.error || 'unknown';
 
+        // Categorize common error types
+        let userFriendlyMessage = '';
+        let suggestion = '';
+
+        if (errorCode === 'PGRST301' || errorMessage.includes('violates row-level security')) {
+          userFriendlyMessage = 'Row Level Security is blocking this operation. You need to use the manual SQL method.';
+          suggestion = 'Go to /manual-admin-setup and run the SQL commands directly in your Supabase Dashboard.';
+        } else if (errorCode === '23503' || errorMessage.includes('foreign key')) {
+          userFriendlyMessage = 'The User ID does not exist in the authentication system. Please verify the User ID is correct.';
+          suggestion = 'Double-check the User ID from your original error message, or create a new admin account instead.';
+        } else if (errorMessage.includes('duplicate key') || errorMessage.includes('already exists')) {
+          userFriendlyMessage = 'A profile with this ID already exists but couldn\'t be updated due to permissions.';
+          suggestion = 'Try the manual SQL method to update the existing profile.';
+        } else if (errorMessage.includes('permission denied') || errorMessage.includes('access denied')) {
+          userFriendlyMessage = 'Permission denied. Your current user doesn\'t have rights to modify profiles.';
+          suggestion = 'Use the manual SQL method with database admin access.';
+        } else {
+          userFriendlyMessage = `Upsert operation failed: ${errorMessage}`;
+          suggestion = 'Try the manual database method for guaranteed success.';
+        }
+
         return {
           success: false,
-          message: `Direct profile fix failed: ${errorMessage}. Error code: ${errorCode}`,
+          message: `${userFriendlyMessage} Error code: ${errorCode}`,
           error: {
             message: errorMessage,
             code: errorCode,
+            type: 'upsert_failed',
             details: upsertError,
-            hint: upsertError.hint || 'Check if the User ID exists in auth.users table'
+            suggestion: suggestion,
+            userFriendlyMessage: userFriendlyMessage
           }
         };
       }
