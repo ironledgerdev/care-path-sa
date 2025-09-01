@@ -76,12 +76,20 @@ const FixAdminAccount = () => {
         profile = updatedProfile;
       } else {
         console.log('🆕 Profile does not exist, creating new one...');
+
+        if (!email || !firstName || !lastName) {
+          return {
+            success: false,
+            message: 'Profile does not exist. Please provide email, first name, and last name to create it.',
+          };
+        }
+
         // Profile doesn't exist, create it
         const { data: createdProfile, error: createError } = await supabase
           .from('profiles')
           .insert({
             id: userId,
-            email: email || authUser.user?.email || '',
+            email: email,
             first_name: firstName,
             last_name: lastName,
             role: 'admin',
