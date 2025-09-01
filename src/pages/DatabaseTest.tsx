@@ -426,7 +426,17 @@ const DatabaseTest = () => {
       );
       results.push({ ...doctorUserResult, message: `Doctor User Registration: ${doctorUserResult.message}` });
 
-      // Test 3: Verify database state
+      // Test 3: Test doctor enrollment process
+      addRealtimeEvent('test', 'START', 'Starting doctor enrollment test');
+      const doctorEnrollmentResult = await testDoctorEnrollment(
+        `enrollment.${timestamp}@example.com`,
+        'Dr. Sarah',
+        'Johnson',
+        'Dr. Sarah Johnson Medical Practice'
+      );
+      results.push({ ...doctorEnrollmentResult, message: `Doctor Enrollment: ${doctorEnrollmentResult.message}` });
+
+      // Test 4: Verify database state
       addRealtimeEvent('test', 'VERIFY', 'Verifying database state after registrations');
       const dbStateResult = await verifyDatabaseState();
       results.push({ ...dbStateResult, message: `Database State: ${dbStateResult.message}` });
@@ -597,7 +607,7 @@ const DatabaseTest = () => {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-semibold text-blue-800 mb-2">What This Test Does:</h4>
                   <ul className="text-sm text-blue-700 space-y-1">
-                    <li>�� Creates a test patient user and verifies profile creation</li>
+                    <li>• Creates a test patient user and verifies profile creation</li>
                     <li>• Creates a test doctor user account (ready for enrollment)</li>
                     <li>• Verifies data persistence in the database</li>
                     <li>• Tests real-time notifications and admin visibility</li>
