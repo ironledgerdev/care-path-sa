@@ -28,8 +28,36 @@ const FixAdminAccount = () => {
   const fixAdminAccountDirect = async (): Promise<FixResult> => {
     try {
       console.log('🔧 Attempting direct admin account fix:', userId);
+      console.log('📧 Email:', email);
+      console.log('👤 Name:', firstName, lastName);
+
+      // First, let's test if we can access the profiles table at all
+      console.log('🔍 Testing profiles table access...');
+      const { data: accessTest, error: accessError } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+
+      if (accessError) {
+        console.error('❌ Cannot access profiles table:', accessError);
+        return {
+          success: false,
+          message: `Cannot access profiles table: ${accessError.message || JSON.stringify(accessError)}. This suggests RLS (Row Level Security) is blocking access. Please use the manual SQL method.`,
+          error: {
+            type: 'rls_blocked',
+            details: accessError,
+            suggestion: 'Use manual database method - go to /manual-admin-setup'
+          }
+        };
+      }
+
+      console.log('✅ Profiles table access confirmed');
+
+      // Check if the user exists in auth.users (this tells us if the User ID is valid)
+      console.log('🔍 Checking if User ID exists...');
 
       // Try to update the existing profile using upsert (which may work better with RLS)
+      console.log('📝 Attempting upsert operation...');
       const { data: profile, error: upsertError } = await supabase
         .from('profiles')
         .upsert({
