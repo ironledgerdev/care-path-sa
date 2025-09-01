@@ -41,6 +41,7 @@ const CreateAdminAccount = lazy(() => import("./pages/CreateAdminAccount"));
 const AdminSetup = lazy(() => import("./pages/AdminSetup"));
 const RouteTest = lazy(() => import("./pages/RouteTest"));
 const FixAdminAccount = lazy(() => import("./pages/FixAdminAccount"));
+const ManualAdminSetup = lazy(() => import("./pages/ManualAdminSetup"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
