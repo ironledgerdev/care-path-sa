@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Copy,
   ExternalLink,
-  Wrench
+  Wrench,
+  Database
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
