@@ -228,6 +228,7 @@ const FixAdminAccount = () => {
 
       // First try the Edge Function approach
       try {
+        console.log('🚀 Invoking Edge Function with:', { userId, email, firstName, lastName });
         const { data, error } = await supabase.functions.invoke('fix-admin-account', {
           body: {
             userId,
@@ -237,6 +238,8 @@ const FixAdminAccount = () => {
           }
         });
 
+        console.log('📦 Edge Function response:', { data, error });
+
         if (!error && data?.success) {
           return {
             success: true,
@@ -245,9 +248,17 @@ const FixAdminAccount = () => {
           };
         }
 
-        console.log('Edge Function failed, trying direct method...', error);
+        if (error) {
+          console.error('❌ Edge Function error details:', error);
+        }
+        if (data && !data.success) {
+          console.error('❌ Edge Function returned error:', data);
+        }
+
+        console.log('Edge Function failed, trying direct method...');
       } catch (edgeFunctionError) {
-        console.log('Edge Function not available, trying direct method...', edgeFunctionError);
+        console.error('❌ Edge Function exception:', edgeFunctionError);
+        console.log('Edge Function not available, trying direct method...');
       }
 
       // Fallback to direct method
@@ -260,11 +271,18 @@ const FixAdminAccount = () => {
         };
       }
 
-      // If both methods fail, provide helpful instructions
+      // If both methods fail, provide helpful instructions with more details
+      const edgeFunctionError = 'Edge Function failed or unavailable';
+      const directMethodError = directResult.error?.message || 'Direct method failed';
+
       return {
         success: false,
-        message: 'Unable to fix admin account automatically. Please try these steps:\n\n1. Make sure you used the exact User ID from your error message\n2. Use the same email address you registered with\n3. Contact support if the issue persists\n\nTechnical details: Both Edge Function and direct database methods failed.',
-        error: directResult.error
+        message: `Unable to fix admin account automatically. Please try these steps:\n\n1. Make sure you used the exact User ID from your error message\n2. Use the same email address you registered with\n3. Contact support if the issue persists\n\nTechnical details:\n- Edge Function: ${edgeFunctionError}\n- Direct Method: ${directMethodError}`,
+        error: {
+          edgeFunction: edgeFunctionError,
+          directMethod: directResult.error,
+          suggestion: 'Use the manual SQL method for guaranteed success'
+        }
       };
 
     } catch (error: any) {
