@@ -24,7 +24,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { testUserRegistration, testUserLogin, verifyDatabaseState, UserRegistrationTestResult } from '@/utils/testUserRegistration';
+import { testUserRegistration, testUserLogin, testDoctorEnrollment, verifyDatabaseState, UserRegistrationTestResult } from '@/utils/testUserRegistration';
 
 interface DatabaseCounts {
   profiles: number;
@@ -597,7 +597,7 @@ const DatabaseTest = () => {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-semibold text-blue-800 mb-2">What This Test Does:</h4>
                   <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Creates a test patient user and verifies profile creation</li>
+                    <li>�� Creates a test patient user and verifies profile creation</li>
                     <li>• Creates a test doctor user account (ready for enrollment)</li>
                     <li>• Verifies data persistence in the database</li>
                     <li>• Tests real-time notifications and admin visibility</li>
