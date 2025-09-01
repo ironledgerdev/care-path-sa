@@ -108,6 +108,8 @@ const App = () => {
                         <Route path="/admin-setup" element={<AdminSetup />} />
                         <Route path="/AdminSetup" element={<Navigate to="/admin-setup" replace />} />
                         <Route path="/adminSetup" element={<Navigate to="/admin-setup" replace />} />
+                        <Route path="/admin_setup" element={<Navigate to="/admin-setup" replace />} />
+                        <Route path="/ADMIN_SETUP" element={<Navigate to="/admin-setup" replace />} />
                         <Route path="/bookings" element={<BookingHistory />} />
                         <Route path="/BookingHistory" element={<BookingHistory />} />
                         <Route path="/booking-history" element={<BookingHistory />} />
