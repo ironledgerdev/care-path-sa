@@ -205,12 +205,13 @@ const FixAdminAccount = () => {
                 <h4 className="font-semibold text-blue-800">Account Recovery</h4>
               </div>
               <p className="text-sm text-blue-700">
-                This tool uses a secure server-side function to create or update your admin profile,
-                bypassing security policies that may prevent direct database access.
+                This tool tries multiple methods to fix your admin account:
               </p>
-              <p className="text-xs text-blue-600 mt-2">
-                <strong>Note:</strong> If you get a "service not available" error, the admin fix function may need to be deployed to your Supabase project first.
-              </p>
+              <ul className="text-xs text-blue-600 mt-2 space-y-1 ml-4 list-disc">
+                <li>Secure server-side function (if available)</li>
+                <li>Direct database operations with fallback methods</li>
+                <li>Manual SQL commands (if automated methods fail)</li>
+              </ul>
             </div>
 
             <div className="space-y-4">
