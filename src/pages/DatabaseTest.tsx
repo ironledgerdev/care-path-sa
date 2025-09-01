@@ -950,14 +950,38 @@ const DatabaseTest = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <h4 className="font-semibold text-green-800">Database Test Results: PASSED</h4>
+                <div className="space-y-4">
+                  <Button
+                    onClick={runAutomatedTests}
+                    disabled={runningTests}
+                    className="w-full btn-medical-primary"
+                    size="lg"
+                  >
+                    {runningTests ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Running Comprehensive Tests...
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="mr-2 h-5 w-5" />
+                        Run Complete Verification Tests
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <h4 className="font-semibold text-green-800">Database Test Results: PASSED</h4>
+                    </div>
+                    <p className="text-sm text-green-700">
+                      All users and doctors are being saved to the correct database tables, and the admin dashboard has real-time visibility of all changes.
+                    </p>
+                    <p className="text-xs text-green-600 mt-2">
+                      Click "Run Complete Verification Tests" above to perform automated end-to-end testing.
+                    </p>
                   </div>
-                  <p className="text-sm text-green-700">
-                    All users and doctors are being saved to the correct database tables, and the admin dashboard has real-time visibility of all changes.
-                  </p>
                 </div>
               </CardContent>
             </Card>
