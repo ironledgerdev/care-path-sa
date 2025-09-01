@@ -206,8 +206,8 @@ const FixAdminAccount = () => {
                 <h4 className="font-semibold text-blue-800">Account Recovery</h4>
               </div>
               <p className="text-sm text-blue-700">
-                If your admin account was created but verification failed, this tool will fix the profile 
-                and ensure admin privileges are properly set.
+                If your admin account was created but verification failed, this tool will create or update
+                your profile with admin privileges. You'll need to provide your full details.
               </p>
             </div>
 
