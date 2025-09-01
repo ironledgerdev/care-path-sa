@@ -585,6 +585,111 @@ const DatabaseTest = () => {
             <TabsTrigger value="verification">Verification</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="automated-tests">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Automated Registration & Database Tests
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">What This Test Does:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Creates a test patient user and verifies profile creation</li>
+                    <li>• Creates a test doctor user account (ready for enrollment)</li>
+                    <li>• Verifies data persistence in the database</li>
+                    <li>• Tests real-time notifications and admin visibility</li>
+                    <li>• Generates unique test data to avoid conflicts</li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Button
+                    onClick={runAutomatedTests}
+                    disabled={runningTests}
+                    className="btn-medical-primary"
+                    size="lg"
+                  >
+                    {runningTests ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Running Tests...
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="mr-2 h-5 w-5" />
+                        Run All Tests
+                      </>
+                    )}
+                  </Button>
+
+                  {testResults.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {testResults.filter(r => r.success).length}/{testResults.length} passed
+                      </span>
+                      <Badge
+                        variant={testResults.every(r => r.success) ? 'default' : 'destructive'}
+                      >
+                        {testResults.every(r => r.success) ? 'ALL PASSED' : 'SOME FAILED'}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {testResults.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-primary">Test Results:</h4>
+                    {testResults.map((result, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg border-l-4 ${
+                          result.success
+                            ? 'bg-green-50 border-green-500'
+                            : 'bg-red-50 border-red-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {result.success ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-600" />
+                          )}
+                          <span className={`font-semibold ${
+                            result.success ? 'text-green-800' : 'text-red-800'
+                          }`}>
+                            Test {index + 1}: {result.success ? 'PASSED' : 'FAILED'}
+                          </span>
+                        </div>
+                        <p className={`text-sm ${
+                          result.success ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {result.message}
+                        </p>
+                        {result.userId && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            User ID: {result.userId}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {runningTests && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">
+                      Running automated tests... Check the Real-time Events tab to see live updates.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="test-creation">
             <Card className="medical-hero-card">
               <CardHeader>
