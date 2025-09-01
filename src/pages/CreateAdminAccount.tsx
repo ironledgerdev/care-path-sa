@@ -111,44 +111,84 @@ const CreateAdminAccount = () => {
         };
       }
 
-      // Step 3: Wait for profile creation trigger
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 3: Wait for profile creation trigger and try multiple times
+      let adminProfile = null;
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      // Step 4: Update the profile to ensure admin role
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'admin',
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', authData.user.id);
+      while (attempts < maxAttempts && !adminProfile) {
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Increasing wait time
 
-      if (updateError) {
-        console.warn('Profile update warning:', updateError);
+        // Try to get existing profile
+        const { data: existingProfile, error: getError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (existingProfile) {
+          // Profile exists, update it to admin role
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              role: 'admin',
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', authData.user.id);
+
+          if (!updateError) {
+            // Verify the update worked
+            const { data: updatedProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .single();
+
+            if (updatedProfile && updatedProfile.role === 'admin') {
+              adminProfile = updatedProfile;
+              break;
+            }
+          }
+        } else {
+          // Profile doesn't exist, create it manually
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              email: formData.email,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              role: 'admin',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (!createError && createdProfile) {
+            adminProfile = createdProfile;
+            break;
+          }
+        }
+
+        console.log(`Profile creation/update attempt ${attempts}/${maxAttempts}`);
       }
 
-      // Step 5: Verify the admin account was created correctly
-      const { data: adminProfile, error: verifyError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (verifyError || !adminProfile) {
+      if (!adminProfile) {
         return {
           success: false,
-          message: 'Admin account created but verification failed',
-          userId: authData.user.id,
-          error: verifyError
+          message: `Admin account created but profile setup failed after ${maxAttempts} attempts. Please contact support with User ID: ${authData.user.id}`,
+          userId: authData.user.id
         };
       }
 
       if (adminProfile.role !== 'admin') {
         return {
           success: false,
-          message: 'Account created but admin role was not set correctly',
+          message: 'Account created but admin role was not set correctly. Please contact support.',
           userId: authData.user.id
         };
       }
