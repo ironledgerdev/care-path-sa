@@ -162,6 +162,58 @@ const AdminSetup = () => {
             </CardContent>
           </Card>
 
+          {/* Troubleshooting Section */}
+          <Card className="medical-hero-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="h-5 w-5" />
+                Troubleshooting
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <h4 className="font-semibold text-amber-800 mb-2">Account Created But Verification Failed?</h4>
+                  <p className="text-sm text-amber-700 mb-3">
+                    If you received an error like "Admin account created but verification failed" with a User ID,
+                    use our account recovery tool to fix the issue.
+                  </p>
+                  <Button
+                    onClick={() => window.location.href = '/fix-admin-account'}
+                    size="sm"
+                    variant="outline"
+                    className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    <Wrench className="mr-2 h-4 w-4" />
+                    Fix Failed Admin Account
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <h5 className="font-semibold text-primary mb-2">Common Issues:</h5>
+                    <ul className="text-muted-foreground space-y-1">
+                      <li>• Database timing issues</li>
+                      <li>• Profile creation delays</li>
+                      <li>• Role assignment failures</li>
+                      <li>• Network connectivity problems</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-primary mb-2">Solutions:</h5>
+                    <ul className="text-muted-foreground space-y-1">
+                      <li>• Use the account recovery tool</li>
+                      <li>• Wait and try again later</li>
+                      <li>• Check your internet connection</li>
+                      <li>• Contact support if issues persist</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Action Buttons */}
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="medical-hero-card">
