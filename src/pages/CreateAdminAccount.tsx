@@ -406,6 +406,18 @@ const CreateAdminAccount = () => {
                     User ID: {result.userId}
                   </p>
                 )}
+                {!result.success && result.userId && result.message.includes('verification failed') && (
+                  <div className="mt-3">
+                    <Button
+                      onClick={() => navigate(`/fix-admin-account`)}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
+                    >
+                      Fix This Account Issue
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
