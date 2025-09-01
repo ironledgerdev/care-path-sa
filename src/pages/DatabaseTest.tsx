@@ -609,7 +609,8 @@ const DatabaseTest = () => {
                   <ul className="text-sm text-blue-700 space-y-1">
                     <li>• Creates a test patient user and verifies profile creation</li>
                     <li>• Creates a test doctor user account (ready for enrollment)</li>
-                    <li>• Verifies data persistence in the database</li>
+                    <li>• Tests complete doctor enrollment flow and pending_doctors table creation</li>
+                    <li>• Verifies data persistence across all database tables</li>
                     <li>• Tests real-time notifications and admin visibility</li>
                     <li>• Generates unique test data to avoid conflicts</li>
                   </ul>
