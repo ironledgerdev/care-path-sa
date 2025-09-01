@@ -38,6 +38,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const DatabaseTest = lazy(() => import("./pages/DatabaseTest"));
 const TestSummary = lazy(() => import("./pages/TestSummary"));
 const CreateAdminAccount = lazy(() => import("./pages/CreateAdminAccount"));
+const AdminSetup = lazy(() => import("./pages/AdminSetup"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
