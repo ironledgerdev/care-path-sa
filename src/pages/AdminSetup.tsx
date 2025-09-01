@@ -2,15 +2,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Shield, 
-  UserPlus, 
-  Key, 
-  CheckCircle, 
-  ArrowRight, 
+import {
+  Shield,
+  UserPlus,
+  Key,
+  CheckCircle,
+  ArrowRight,
   AlertTriangle,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Wrench
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
