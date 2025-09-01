@@ -102,7 +102,7 @@ const App = () => {
                         <Route path="/BookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/bookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/doctor" element={<DoctorDashboard />} />
-                        <Route path="/admin-access" element={<AdminAccess />} />
+                        <Route path="/create-admin-account" element={<CreateAdminAccount />} />
                         <Route path="/bookings" element={<BookingHistory />} />
                         <Route path="/BookingHistory" element={<BookingHistory />} />
                         <Route path="/booking-history" element={<BookingHistory />} />
