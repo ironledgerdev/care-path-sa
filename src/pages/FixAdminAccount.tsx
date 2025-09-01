@@ -70,20 +70,34 @@ const FixAdminAccount = () => {
   };
 
   const testDatabaseAccess = async () => {
-    setDebugInfo('Testing database access...');
+    if (!userId) {
+      setDebugInfo('❌ Please enter a User ID first');
+      return;
+    }
+
+    setDebugInfo('🔍 Testing database access...');
+    let debugOutput = '🔍 Database Access Test Results:\n\n';
+
     try {
-      // Test 1: Can we read from profiles table?
+      // Test 1: Basic auth check
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      debugOutput += `1. Current Auth User: ${authData.user ? `✅ ${authData.user.email}` : '❌ Not authenticated'}\n`;
+
+      // Test 2: Can we read from profiles table?
       const { data: profilesTest, error: profilesError } = await supabase
         .from('profiles')
         .select('count')
         .limit(1);
 
       if (profilesError) {
-        setDebugInfo(`❌ Cannot read profiles table: ${profilesError.message}`);
-        return;
+        debugOutput += `2. Profiles Table Access: ❌ ${profilesError.message}\n`;
+        debugOutput += `   Error Code: ${profilesError.code}\n`;
+        debugOutput += `   This suggests RLS (Row Level Security) is blocking access\n`;
+      } else {
+        debugOutput += `2. Profiles Table Access: ✅ Can read profiles table\n`;
       }
 
-      // Test 2: Can we read our specific user?
+      // Test 3: Can we read our specific user?
       const { data: userProfile, error: userError } = await supabase
         .from('profiles')
         .select('*')
@@ -91,18 +105,55 @@ const FixAdminAccount = () => {
         .single();
 
       if (userError && userError.code !== 'PGRST116') { // PGRST116 = not found
-        setDebugInfo(`❌ Cannot query user profile: ${userError.message}`);
-        return;
+        debugOutput += `3. User Profile Query: ❌ ${userError.message}\n`;
+        debugOutput += `   Error Code: ${userError.code}\n`;
+      } else if (userProfile) {
+        debugOutput += `3. User Profile Query: ✅ Found profile\n`;
+        debugOutput += `   Current Role: ${userProfile.role || 'none'}\n`;
+        debugOutput += `   Email: ${userProfile.email}\n`;
+        debugOutput += `   Name: ${userProfile.first_name} ${userProfile.last_name}\n`;
+      } else {
+        debugOutput += `3. User Profile Query: ℹ️ Profile not found (will need to create)\n`;
       }
 
-      if (userProfile) {
-        setDebugInfo(`✅ User profile found: ${JSON.stringify(userProfile, null, 2)}`);
+      // Test 4: Can we write to profiles table?
+      debugOutput += `\n4. Testing write access...\n`;
+      const testWriteData = {
+        id: 'test-' + Date.now(),
+        email: 'test@example.com',
+        first_name: 'Test',
+        last_name: 'User',
+        role: 'user'
+      };
+
+      const { error: writeError } = await supabase
+        .from('profiles')
+        .insert(testWriteData)
+        .select();
+
+      if (writeError) {
+        debugOutput += `   Write Test: ❌ ${writeError.message}\n`;
+        debugOutput += `   Error Code: ${writeError.code}\n`;
       } else {
-        setDebugInfo(`ℹ️ User profile not found - this means we need to create it`);
+        debugOutput += `   Write Test: ✅ Can insert (cleaning up test record)\n`;
+        // Clean up the test record
+        await supabase.from('profiles').delete().eq('id', testWriteData.id);
       }
+
+      debugOutput += `\n📋 Recommendation:\n`;
+      if (profilesError || writeError) {
+        debugOutput += `Use the Manual SQL method - RLS policies are blocking automated fixes.`;
+      } else {
+        debugOutput += `Direct database method should work. Try clicking 'Fix Admin Account'.`;
+      }
+
+      setDebugInfo(debugOutput);
 
     } catch (error: any) {
-      setDebugInfo(`❌ Unexpected error: ${error.message}`);
+      const nerr = normalizeError(error);
+      debugOutput += `❌ Unexpected error: ${nerr.message}\n`;
+      debugOutput += `Error Code: ${nerr.code}\n`;
+      setDebugInfo(debugOutput);
     }
   };
 
@@ -463,7 +514,7 @@ const FixAdminAccount = () => {
               </div>
 
               {debugInfo && (
-                <div className="p-3 bg-gray-50 border rounded-lg">
+                <div className="p-3 bg-gray-50 border rounded-lg max-h-64 overflow-y-auto">
                   <p className="text-sm font-mono whitespace-pre-wrap">{debugInfo}</p>
                 </div>
               )}
