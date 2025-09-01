@@ -119,6 +119,7 @@ const App = () => {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/database-test" element={<DatabaseTest />} />
                         <Route path="/test-summary" element={<TestSummary />} />
+                        <Route path="/route-test" element={<RouteTest />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
