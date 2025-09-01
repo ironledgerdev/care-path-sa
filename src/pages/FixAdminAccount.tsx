@@ -16,7 +16,7 @@ interface FixResult {
 }
 
 const FixAdminAccount = () => {
-  const [userId, setUserId] = useState('3a7e63fa-b246-4f21-a44d-a3ca020e2198'); // Pre-fill with the failed ID
+  const [userId, setUserId] = useState(''); // User should enter their actual User ID
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
