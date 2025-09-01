@@ -22,8 +22,46 @@ const FixAdminAccount = () => {
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<FixResult | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const testDatabaseAccess = async () => {
+    setDebugInfo('Testing database access...');
+    try {
+      // Test 1: Can we read from profiles table?
+      const { data: profilesTest, error: profilesError } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+
+      if (profilesError) {
+        setDebugInfo(`❌ Cannot read profiles table: ${profilesError.message}`);
+        return;
+      }
+
+      // Test 2: Can we read our specific user?
+      const { data: userProfile, error: userError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (userError && userError.code !== 'PGRST116') { // PGRST116 = not found
+        setDebugInfo(`❌ Cannot query user profile: ${userError.message}`);
+        return;
+      }
+
+      if (userProfile) {
+        setDebugInfo(`✅ User profile found: ${JSON.stringify(userProfile, null, 2)}`);
+      } else {
+        setDebugInfo(`ℹ️ User profile not found - this means we need to create it`);
+      }
+
+    } catch (error: any) {
+      setDebugInfo(`❌ Unexpected error: ${error.message}`);
+    }
+  };
 
   const fixAdminAccountDirect = async (): Promise<FixResult> => {
     try {
