@@ -128,7 +128,7 @@ const FixAdminAccount = () => {
           error: {
             type: 'rls_blocked',
             code: nerr.code,
-            details: nerr,
+            details: { message: nerr.message, code: nerr.code, details: nerr.details },
             suggestion: 'Use manual database method - go to /manual-admin-setup'
           }
         };
@@ -191,7 +191,7 @@ const FixAdminAccount = () => {
             message: errorMessage,
             code: errorCode,
             type: 'upsert_failed',
-            details: nerr,
+            details: { message: nerr.message, code: nerr.code, details: nerr.details },
             suggestion: suggestion,
             userFriendlyMessage: userFriendlyMessage
           }
@@ -217,7 +217,7 @@ const FixAdminAccount = () => {
       return {
         success: false,
         message: `Direct fix failed: ${nerr.message}`,
-        error: nerr
+        error: { message: nerr.message, code: nerr.code, details: nerr.details }
       };
     }
   };
@@ -273,7 +273,7 @@ const FixAdminAccount = () => {
       return {
         success: false,
         message: `Unexpected error: ${nerr.message}`,
-        error: nerr
+        error: { message: nerr.message, code: nerr.code, details: nerr.details }
       };
     }
   };
@@ -499,7 +499,7 @@ const FixAdminAccount = () => {
                       Show technical details
                     </summary>
                     <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-32">
-                      {JSON.stringify(result.error, null, 2)}
+                      {safeStringify(result.error)}
                     </pre>
                   </details>
                 )}
