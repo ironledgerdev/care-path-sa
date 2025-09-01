@@ -222,7 +222,7 @@ const FixAdminAccount = () => {
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This was shown in the error message
+                  Copy this from the "User ID: ..." shown in your error message
                 </p>
               </div>
 
