@@ -29,20 +29,10 @@ const FixAdminAccount = () => {
     try {
       console.log('🔧 Attempting to fix admin account:', userId);
 
-      // Step 1: Check if user exists in auth
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-      
-      if (authError || !authUser) {
-        return {
-          success: false,
-          message: 'User not found in authentication system',
-          error: authError
-        };
-      }
+      // Skip auth system check - focus on profile fix
+      console.log('🔄 Proceeding directly to profile fix...');
 
-      console.log('✅ User found in auth system:', authUser.user?.email);
-
-      // Step 2: Check current profile
+      // Step 1: Check current profile
       const { data: existingProfile, error: getError } = await supabase
         .from('profiles')
         .select('*')
