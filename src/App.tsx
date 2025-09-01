@@ -109,6 +109,7 @@ const App = () => {
                         <Route path="/verify-email" element={<EmailVerification />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/database-test" element={<DatabaseTest />} />
+                        <Route path="/test-summary" element={<TestSummary />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
