@@ -37,6 +37,7 @@ const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const Profile = lazy(() => import("./pages/Profile"));
 const DatabaseTest = lazy(() => import("./pages/DatabaseTest"));
+const TestSummary = lazy(() => import("./pages/TestSummary"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
