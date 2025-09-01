@@ -41,6 +41,19 @@ const FixAdminAccount = () => {
 
       if (error) {
         console.error('Edge Function error:', error);
+
+        // Check if it's a function not found error
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          return {
+            success: false,
+            message: 'Admin fix service is not available. Please contact support or try the manual method.',
+            error: {
+              ...error,
+              suggestion: 'The fix-admin-account Edge Function may not be deployed yet.'
+            }
+          };
+        }
+
         return {
           success: false,
           message: `Fix operation failed: ${error.message}`,
