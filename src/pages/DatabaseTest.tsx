@@ -82,6 +82,8 @@ const DatabaseTest = () => {
   const [testFirstName, setTestFirstName] = useState('');
   const [testLastName, setTestLastName] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [testResults, setTestResults] = useState<UserRegistrationTestResult[]>([]);
+  const [runningTests, setRunningTests] = useState(false);
 
   const { toast } = useToast();
   const { profile } = useAuth();
