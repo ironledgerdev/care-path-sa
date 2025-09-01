@@ -36,6 +36,7 @@ const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const Profile = lazy(() => import("./pages/Profile"));
+const DatabaseTest = lazy(() => import("./pages/DatabaseTest"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
