@@ -576,9 +576,10 @@ const DatabaseTest = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="test-creation" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="test-creation">Test Creation</TabsTrigger>
+        <Tabs defaultValue="automated-tests" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="automated-tests">Automated Tests</TabsTrigger>
+            <TabsTrigger value="test-creation">Manual Creation</TabsTrigger>
             <TabsTrigger value="recent-data">Recent Data</TabsTrigger>
             <TabsTrigger value="realtime-events">Real-time Events</TabsTrigger>
             <TabsTrigger value="verification">Verification</TabsTrigger>
