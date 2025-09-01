@@ -121,7 +121,7 @@ const FixAdminAccount = () => {
 
       return {
         success: true,
-        message: 'Admin account fixed successfully! You can now login with admin privileges.',
+        message: 'Admin profile created/updated successfully! You can now login with your email and password to access admin features.',
         profile
       };
 
