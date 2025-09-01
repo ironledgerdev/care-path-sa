@@ -25,54 +25,102 @@ const FixAdminAccount = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const fixAdminAccount = async (): Promise<FixResult> => {
+  const fixAdminAccountDirect = async (): Promise<FixResult> => {
     try {
-      console.log('🔧 Attempting to fix admin account:', userId);
+      console.log('🔧 Attempting direct admin account fix:', userId);
 
-      // Use the Edge Function to fix the admin account (bypasses RLS)
-      const { data, error } = await supabase.functions.invoke('fix-admin-account', {
-        body: {
-          userId,
-          email,
-          firstName,
-          lastName
-        }
-      });
+      // Try to update the existing profile using upsert (which may work better with RLS)
+      const { data: profile, error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          role: 'admin',
+          email_verified: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Edge Function error:', error);
-
-        // Check if it's a function not found error
-        if (error.message?.includes('not found') || error.message?.includes('404')) {
-          return {
-            success: false,
-            message: 'Admin fix service is not available. Please contact support or try the manual method.',
-            error: {
-              ...error,
-              suggestion: 'The fix-admin-account Edge Function may not be deployed yet.'
-            }
-          };
-        }
-
+      if (upsertError) {
+        console.error('Direct upsert failed:', upsertError);
         return {
           success: false,
-          message: `Fix operation failed: ${error.message}`,
-          error
+          message: `Direct profile fix failed: ${upsertError.message}. This usually means the account doesn't exist in the auth system or RLS policies are blocking access.`,
+          error: upsertError
         };
       }
 
-      if (!data?.success) {
+      if (profile && profile.role === 'admin') {
         return {
-          success: false,
-          message: data?.error || 'Fix operation failed for unknown reason',
-          error: data
+          success: true,
+          message: 'Admin account fixed successfully using direct method!',
+          profile
         };
       }
 
       return {
-        success: true,
-        message: data.message || 'Admin account fixed successfully!',
-        profile: data.profile
+        success: false,
+        message: 'Profile updated but admin role was not set correctly',
+        profile
+      };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Direct fix failed: ${error.message}`,
+        error
+      };
+    }
+  };
+
+  const fixAdminAccount = async (): Promise<FixResult> => {
+    try {
+      console.log('🔧 Attempting to fix admin account:', userId);
+
+      // First try the Edge Function approach
+      try {
+        const { data, error } = await supabase.functions.invoke('fix-admin-account', {
+          body: {
+            userId,
+            email,
+            firstName,
+            lastName
+          }
+        });
+
+        if (!error && data?.success) {
+          return {
+            success: true,
+            message: data.message || 'Admin account fixed successfully!',
+            profile: data.profile
+          };
+        }
+
+        console.log('Edge Function failed, trying direct method...', error);
+      } catch (edgeFunctionError) {
+        console.log('Edge Function not available, trying direct method...', edgeFunctionError);
+      }
+
+      // Fallback to direct method
+      const directResult = await fixAdminAccountDirect();
+
+      if (directResult.success) {
+        return {
+          ...directResult,
+          message: directResult.message + ' (Used fallback method)'
+        };
+      }
+
+      // If both methods fail, provide helpful instructions
+      return {
+        success: false,
+        message: 'Unable to fix admin account automatically. Please try these steps:\n\n1. Make sure you used the exact User ID from your error message\n2. Use the same email address you registered with\n3. Contact support if the issue persists\n\nTechnical details: Both Edge Function and direct database methods failed.',
+        error: directResult.error
       };
 
     } catch (error: any) {
