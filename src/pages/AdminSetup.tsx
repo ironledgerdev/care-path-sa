@@ -191,6 +191,24 @@ const AdminSetup = () => {
                   </Button>
                 </div>
 
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">All Automated Methods Failed?</h4>
+                  <p className="text-sm text-blue-700 mb-3">
+                    If Edge Functions and automated tools aren't working, you can manually fix your admin account
+                    using direct database commands.
+                  </p>
+                  <Button
+                    onClick={() => window.location.href = '/manual-admin-setup'}
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    Manual Database Setup
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <h5 className="font-semibold text-primary mb-2">Common Issues:</h5>
