@@ -144,6 +144,15 @@ const FixAdminAccount = () => {
       return;
     }
 
+    if (!firstName || !lastName || !email) {
+      toast({
+        title: "Error",
+        description: "Please fill in your first name, last name, and email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setResult(null);
 
