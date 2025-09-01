@@ -29,103 +29,41 @@ const FixAdminAccount = () => {
     try {
       console.log('🔧 Attempting to fix admin account:', userId);
 
-      // Skip auth system check - focus on profile fix
-      console.log('🔄 Proceeding directly to profile fix...');
+      // Use the Edge Function to fix the admin account (bypasses RLS)
+      const { data, error } = await supabase.functions.invoke('fix-admin-account', {
+        body: {
+          userId,
+          email,
+          firstName,
+          lastName
+        }
+      });
 
-      // Step 1: Check current profile
-      const { data: existingProfile, error: getError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (getError && getError.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (error) {
+        console.error('Edge Function error:', error);
         return {
           success: false,
-          message: `Database error when checking profile: ${getError.message}`,
-          error: getError
+          message: `Fix operation failed: ${error.message}`,
+          error
         };
       }
 
-      let profile;
-
-      if (existingProfile) {
-        console.log('📝 Profile exists, updating to admin role...');
-        // Profile exists, update it
-        const { data: updatedProfile, error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            role: 'admin',
-            first_name: firstName || existingProfile.first_name,
-            last_name: lastName || existingProfile.last_name,
-            email: email || existingProfile.email,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId)
-          .select()
-          .single();
-
-        if (updateError) {
-          return {
-            success: false,
-            message: `Failed to update profile: ${updateError.message}`,
-            error: updateError
-          };
-        }
-
-        profile = updatedProfile;
-      } else {
-        console.log('🆕 Profile does not exist, creating new one...');
-
-        if (!email || !firstName || !lastName) {
-          return {
-            success: false,
-            message: 'Profile does not exist. Please provide email, first name, and last name to create it.',
-          };
-        }
-
-        // Profile doesn't exist, create it
-        const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            email: email,
-            first_name: firstName,
-            last_name: lastName,
-            role: 'admin',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          return {
-            success: false,
-            message: `Failed to create profile: ${createError.message}`,
-            error: createError
-          };
-        }
-
-        profile = createdProfile;
-      }
-
-      // Step 3: Final verification
-      if (profile.role !== 'admin') {
+      if (!data?.success) {
         return {
           success: false,
-          message: 'Profile updated but admin role was not set correctly',
-          profile
+          message: data?.error || 'Fix operation failed for unknown reason',
+          error: data
         };
       }
 
       return {
         success: true,
-        message: 'Admin profile created/updated successfully! You can now login with your email and password to access admin features.',
-        profile
+        message: data.message || 'Admin account fixed successfully!',
+        profile: data.profile
       };
 
     } catch (error: any) {
+      console.error('Unexpected error:', error);
       return {
         success: false,
         message: `Unexpected error: ${error.message}`,
