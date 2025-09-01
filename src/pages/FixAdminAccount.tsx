@@ -365,24 +365,43 @@ const FixAdminAccount = () => {
               </div>
             </div>
 
-            <Button 
-              onClick={handleFix}
-              className="w-full btn-medical-primary"
-              disabled={isLoading}
-              size="lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Fixing Admin Account...
-                </>
-              ) : (
-                <>
-                  <Wrench className="mr-2 h-4 w-4" />
-                  Fix Admin Account
-                </>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleFix}
+                  className="flex-1 btn-medical-primary"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Fixing Admin Account...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="mr-2 h-4 w-4" />
+                      Fix Admin Account
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={testDatabaseAccess}
+                  variant="outline"
+                  disabled={isLoading}
+                  size="lg"
+                >
+                  🔍 Debug
+                </Button>
+              </div>
+
+              {debugInfo && (
+                <div className="p-3 bg-gray-50 border rounded-lg">
+                  <p className="text-sm font-mono whitespace-pre-wrap">{debugInfo}</p>
+                </div>
               )}
-            </Button>
+            </div>
 
             {result && (
               <div className={`p-4 rounded-lg border-l-4 ${
