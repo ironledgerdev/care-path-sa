@@ -369,6 +369,12 @@ const FixAdminAccount = () => {
                 }`}>
                   {result.message}
                 </p>
+                {!result.success && result.error?.suggestion && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-sm font-semibold text-blue-800 mb-1">💡 Suggested Solution:</p>
+                    <p className="text-sm text-blue-700">{result.error.suggestion}</p>
+                  </div>
+                )}
                 {result.profile && (
                   <div className="mt-3 p-2 bg-white rounded border text-xs">
                     <strong>Profile Details:</strong>
