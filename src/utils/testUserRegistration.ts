@@ -191,6 +191,110 @@ export const testUserLogin = async (
   }
 };
 
+export const testDoctorEnrollment = async (
+  email: string,
+  firstName: string,
+  lastName: string,
+  practiceName?: string
+): Promise<UserRegistrationTestResult> => {
+  try {
+    console.log('🧪 Testing doctor enrollment for:', email);
+
+    const enrollmentData = {
+      practice_name: practiceName || `${firstName} ${lastName} Medical Practice`,
+      speciality: 'General Practitioner',
+      qualification: 'MBChB',
+      license_number: `TEST${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      years_experience: '5',
+      consultation_fee: '500',
+      address: '123 Test Medical Street',
+      city: 'Cape Town',
+      province: 'Western Cape',
+      postal_code: '8001',
+      bio: 'Test doctor application for automated testing purposes.',
+    };
+
+    const applicantData = {
+      first_name: firstName,
+      last_name: lastName,
+      email: email
+    };
+
+    // Step 1: Submit doctor enrollment
+    const { data: enrollmentResult, error: enrollmentError } = await supabase.functions.invoke('submit-doctor-enrollment', {
+      body: {
+        form: enrollmentData,
+        applicant: applicantData
+      }
+    });
+
+    if (enrollmentError) {
+      return {
+        success: false,
+        message: `Doctor enrollment failed: ${enrollmentError.message}`,
+        error: enrollmentError
+      };
+    }
+
+    if (!enrollmentResult?.success) {
+      return {
+        success: false,
+        message: 'Doctor enrollment failed: No success confirmation',
+        data: enrollmentResult
+      };
+    }
+
+    console.log('✅ Doctor enrollment submitted successfully');
+
+    // Step 2: Wait a bit for the data to be processed
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Step 3: Verify the pending doctor record was created
+    const { data: pendingDoctor, error: pendingError } = await supabase
+      .from('pending_doctors')
+      .select('*, profiles!pending_doctors_user_id_fkey(*)')
+      .eq('practice_name', enrollmentData.practice_name)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (pendingError || !pendingDoctor) {
+      return {
+        success: false,
+        message: `Pending doctor record not found: ${pendingError?.message || 'No data'}`,
+        error: pendingError
+      };
+    }
+
+    // Step 4: Verify the user profile exists
+    if (!pendingDoctor.profiles) {
+      return {
+        success: false,
+        message: 'Doctor enrollment succeeded but user profile not found',
+        data: pendingDoctor
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Doctor enrollment completed successfully - application is pending approval',
+      userId: pendingDoctor.user_id,
+      profileCreated: true,
+      data: {
+        pendingDoctor,
+        profile: pendingDoctor.profiles
+      }
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Unexpected error during doctor enrollment: ${error.message}`,
+      error
+    };
+  }
+};
+
 export const verifyDatabaseState = async () => {
   try {
     console.log('🔍 Verifying database state...');
