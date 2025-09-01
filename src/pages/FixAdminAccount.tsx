@@ -26,6 +26,49 @@ const FixAdminAccount = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Ensure any error-like value is converted into a readable, stable string
+  const safeStringify = (value: any): string => {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (key, val) => {
+        if (typeof val === 'object' && val !== null) {
+          if (seen.has(val)) return '[Circular]';
+          seen.add(val);
+        }
+        if (val instanceof Error) {
+          return { name: val.name, message: val.message, stack: val.stack };
+        }
+        return val;
+      }, 2);
+    } catch {
+      try {
+        return String(value);
+      } catch {
+        return '[Unstringifiable error]';
+      }
+    }
+  };
+
+  const normalizeError = (err: any) => {
+    if (!err) return { message: 'Unknown error', code: 'unknown', raw: err };
+    const code = err.code || err.error || err.status || 'unknown';
+    let msg: any =
+      err.message !== undefined ? err.message :
+      err.msg !== undefined ? err.msg :
+      err.error_description !== undefined ? err.error_description :
+      err.hint !== undefined ? err.hint :
+      err.details !== undefined ? err.details :
+      (typeof err.toString === 'function' ? err.toString() : undefined);
+
+    if (typeof msg === 'object') {
+      msg = safeStringify(msg);
+    }
+    if (typeof msg !== 'string') {
+      msg = String(msg ?? 'Unknown error');
+    }
+    return { message: msg, code, details: err.details || err.hint || null, raw: err };
+  };
+
   const testDatabaseAccess = async () => {
     setDebugInfo('Testing database access...');
     try {
@@ -77,13 +120,15 @@ const FixAdminAccount = () => {
         .limit(1);
 
       if (accessError) {
-        console.error('❌ Cannot access profiles table:', accessError);
+        const nerr = normalizeError(accessError);
+        console.error('❌ Cannot access profiles table:', nerr);
         return {
           success: false,
-          message: `Cannot access profiles table: ${accessError.message || JSON.stringify(accessError)}. This suggests RLS (Row Level Security) is blocking access. Please use the manual SQL method.`,
+          message: `Cannot access profiles table: ${nerr.message}. This suggests RLS (Row Level Security) is blocking access. Please use the manual SQL method.`,
           error: {
             type: 'rls_blocked',
-            details: accessError,
+            code: nerr.code,
+            details: nerr,
             suggestion: 'Use manual database method - go to /manual-admin-setup'
           }
         };
@@ -113,9 +158,10 @@ const FixAdminAccount = () => {
         .single();
 
       if (upsertError) {
-        console.error('❌ Direct upsert failed:', upsertError);
-        const errorMessage = upsertError.message || upsertError.error_description || JSON.stringify(upsertError);
-        const errorCode = upsertError.code || upsertError.error || 'unknown';
+        const nerr = normalizeError(upsertError);
+        console.error('❌ Direct upsert failed:', nerr);
+        const errorMessage = nerr.message;
+        const errorCode = nerr.code;
 
         // Categorize common error types
         let userFriendlyMessage = '';
@@ -124,13 +170,13 @@ const FixAdminAccount = () => {
         if (errorCode === 'PGRST301' || errorMessage.includes('violates row-level security')) {
           userFriendlyMessage = 'Row Level Security is blocking this operation. You need to use the manual SQL method.';
           suggestion = 'Go to /manual-admin-setup and run the SQL commands directly in your Supabase Dashboard.';
-        } else if (errorCode === '23503' || errorMessage.includes('foreign key')) {
+        } else if (errorCode === '23503' || errorMessage.toLowerCase().includes('foreign key')) {
           userFriendlyMessage = 'The User ID does not exist in the authentication system. Please verify the User ID is correct.';
           suggestion = 'Double-check the User ID from your original error message, or create a new admin account instead.';
-        } else if (errorMessage.includes('duplicate key') || errorMessage.includes('already exists')) {
+        } else if (errorMessage.toLowerCase().includes('duplicate key') || errorMessage.toLowerCase().includes('already exists')) {
           userFriendlyMessage = 'A profile with this ID already exists but couldn\'t be updated due to permissions.';
           suggestion = 'Try the manual SQL method to update the existing profile.';
-        } else if (errorMessage.includes('permission denied') || errorMessage.includes('access denied')) {
+        } else if (errorMessage.toLowerCase().includes('permission denied') || errorMessage.toLowerCase().includes('access denied')) {
           userFriendlyMessage = 'Permission denied. Your current user doesn\'t have rights to modify profiles.';
           suggestion = 'Use the manual SQL method with database admin access.';
         } else {
@@ -145,7 +191,7 @@ const FixAdminAccount = () => {
             message: errorMessage,
             code: errorCode,
             type: 'upsert_failed',
-            details: upsertError,
+            details: nerr,
             suggestion: suggestion,
             userFriendlyMessage: userFriendlyMessage
           }
@@ -167,10 +213,11 @@ const FixAdminAccount = () => {
       };
 
     } catch (error: any) {
+      const nerr = normalizeError(error);
       return {
         success: false,
-        message: `Direct fix failed: ${error.message}`,
-        error
+        message: `Direct fix failed: ${nerr.message}`,
+        error: nerr
       };
     }
   };
@@ -221,11 +268,12 @@ const FixAdminAccount = () => {
       };
 
     } catch (error: any) {
-      console.error('Unexpected error:', error);
+      const nerr = normalizeError(error);
+      console.error('Unexpected error:', nerr);
       return {
         success: false,
-        message: `Unexpected error: ${error.message}`,
-        error
+        message: `Unexpected error: ${nerr.message}`,
+        error: nerr
       };
     }
   };
