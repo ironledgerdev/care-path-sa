@@ -160,6 +160,9 @@ const FixAdminAccount = () => {
                 This tool uses a secure server-side function to create or update your admin profile,
                 bypassing security policies that may prevent direct database access.
               </p>
+              <p className="text-xs text-blue-600 mt-2">
+                <strong>Note:</strong> If you get a "service not available" error, the admin fix function may need to be deployed to your Supabase project first.
+              </p>
             </div>
 
             <div className="space-y-4">
