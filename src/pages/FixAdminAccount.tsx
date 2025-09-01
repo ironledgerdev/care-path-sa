@@ -332,6 +332,22 @@ const FixAdminAccount = () => {
                     </pre>
                   </details>
                 )}
+                {!result.success && (
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      onClick={() => navigate('/manual-admin-setup')}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Database className="mr-2 h-4 w-4" />
+                      Try Manual Database Method
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Use direct SQL commands to fix your admin account
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
