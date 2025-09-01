@@ -31,7 +31,6 @@ const Support = lazy(() => import("./pages/Support"));
 const Careers = lazy(() => import("./pages/Careers"));
 const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
