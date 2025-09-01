@@ -377,6 +377,93 @@ const DatabaseTest = () => {
     fetchRecentData();
   };
 
+  const runAutomatedTests = async () => {
+    setRunningTests(true);
+    setTestResults([]);
+
+    const timestamp = Date.now();
+    const testUsers = [
+      {
+        email: `patient.test.${timestamp}@example.com`,
+        password: 'password123',
+        firstName: 'John',
+        lastName: 'Patient',
+        role: 'patient' as const
+      },
+      {
+        email: `doctor.test.${timestamp}@example.com`,
+        password: 'password123',
+        firstName: 'Jane',
+        lastName: 'Doctor',
+        role: 'patient' as const // Will be updated to doctor after enrollment
+      }
+    ];
+
+    const results: UserRegistrationTestResult[] = [];
+
+    try {
+      // Test 1: Register a patient
+      addRealtimeEvent('test', 'START', 'Starting automated patient registration test');
+      const patientResult = await testUserRegistration(
+        testUsers[0].email,
+        testUsers[0].password,
+        testUsers[0].firstName,
+        testUsers[0].lastName,
+        '+27123456789',
+        testUsers[0].role
+      );
+      results.push({ ...patientResult, message: `Patient Registration: ${patientResult.message}` });
+
+      // Test 2: Register a potential doctor
+      addRealtimeEvent('test', 'START', 'Starting automated doctor user registration test');
+      const doctorUserResult = await testUserRegistration(
+        testUsers[1].email,
+        testUsers[1].password,
+        testUsers[1].firstName,
+        testUsers[1].lastName,
+        '+27987654321',
+        testUsers[1].role
+      );
+      results.push({ ...doctorUserResult, message: `Doctor User Registration: ${doctorUserResult.message}` });
+
+      // Test 3: Verify database state
+      addRealtimeEvent('test', 'VERIFY', 'Verifying database state after registrations');
+      const dbStateResult = await verifyDatabaseState();
+      results.push({ ...dbStateResult, message: `Database State: ${dbStateResult.message}` });
+
+      setTestResults(results);
+
+      // Show summary toast
+      const successCount = results.filter(r => r.success).length;
+      const totalCount = results.length;
+
+      toast({
+        title: "Automated Tests Complete",
+        description: `${successCount}/${totalCount} tests passed`,
+        variant: successCount === totalCount ? "default" : "destructive",
+      });
+
+      addRealtimeEvent('test', 'COMPLETE', `Automated tests complete: ${successCount}/${totalCount} passed`);
+
+    } catch (error: any) {
+      const errorResult: UserRegistrationTestResult = {
+        success: false,
+        message: `Test suite error: ${error.message}`,
+        error
+      };
+      results.push(errorResult);
+      setTestResults(results);
+
+      toast({
+        title: "Test Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setRunningTests(false);
+    }
+  };
+
   // Show access control for non-admin users
   if (profile && profile.role !== 'admin') {
     return (
