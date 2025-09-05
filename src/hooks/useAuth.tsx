@@ -54,12 +54,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // If a local admin session flag is present and env vars configured, restore fake session
+    try {
+      const isLocalAdmin = !!localStorage.getItem('local_admin_session');
+      if (isLocalAdmin && ADMIN_EMAIL) {
+        const fakeUser: any = { id: 'local-admin', email: ADMIN_EMAIL };
+        const fakeProfile: Profile = {
+          id: 'local-admin',
+          email: ADMIN_EMAIL,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setUser(fakeUser);
+        setSession(null);
+        setProfile(fakeProfile);
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           setTimeout(() => {
             fetchProfile(session.user.id);
@@ -75,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchProfile(session.user.id);
       }
