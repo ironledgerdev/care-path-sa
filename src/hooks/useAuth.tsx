@@ -85,7 +85,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD as string | undefined;
+
   const signIn = async (email: string, password: string) => {
+    // Check for local env-based admin override
+    if (ADMIN_EMAIL && ADMIN_PASSWORD && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      // Create a lightweight fake user/profile in-memory and persist flag in localStorage
+      const fakeUser: any = {
+        id: 'local-admin',
+        email,
+      };
+      const fakeProfile: Profile = {
+        id: 'local-admin',
+        email,
+        role: 'admin',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setUser(fakeUser);
+      setSession(null);
+      setProfile(fakeProfile);
+      try {
+        localStorage.setItem('local_admin_session', '1');
+      } catch (e) {}
+      return { error: null };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
