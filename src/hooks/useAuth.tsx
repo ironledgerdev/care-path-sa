@@ -142,6 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear local admin flag if present
+    try {
+      localStorage.removeItem('local_admin_session');
+    } catch (e) {}
+
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
