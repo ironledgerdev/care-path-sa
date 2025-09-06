@@ -32,6 +32,50 @@ const CreateAdminAccount = () => {
   // Security key - in production, this should be an environment variable
   const ADMIN_CREATION_SECRET = 'MEDMAP_CREATE_ADMIN_2024_SECURE';
 
+  const safeStringify = (value: any) => {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (k, v) => {
+        if (typeof v === 'object' && v !== null) {
+          if (seen.has(v)) return '[Circular]';
+          seen.add(v);
+        }
+        if (v instanceof Error) return { name: v.name, message: v.message, stack: v.stack };
+        return v;
+      }, 2);
+    } catch (e) {
+      try { return String(value); } catch { return '[Unstringifiable]'; }
+    }
+  };
+
+  const normalizeError = (err: any) => {
+    if (!err) return { message: 'Unknown error', code: 'unknown', raw: err };
+    const code = err.code || err.status || err.error || 'unknown';
+    let message = err.message ?? err.error_description ?? err.msg ?? err.details ?? (typeof err === 'string' ? err : undefined);
+    if (!message && err.name) message = err.name;
+    if (typeof message === 'object') message = safeStringify(message);
+    if (!message) message = String(err);
+    return { message, code, raw: err };
+  };
+
+  const callEdgeFix = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-admin-account', {
+        body: {
+          userId,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName
+        }
+      });
+      console.log('Edge function response', { data, error });
+      return { data, error };
+    } catch (err) {
+      console.error('Edge function invocation failed', err);
+      return { error: err, data: null };
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -127,8 +171,12 @@ const CreateAdminAccount = () => {
           .eq('id', authData.user.id)
           .single();
 
+        if (getError) {
+          console.warn('Get profile error on attempt', attempts, normalizeError(getError));
+        }
+
         if (existingProfile) {
-          // Profile exists, update it to admin role
+          // Profile exists, try to update it to admin role
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -139,13 +187,17 @@ const CreateAdminAccount = () => {
             })
             .eq('id', authData.user.id);
 
-          if (!updateError) {
+          if (updateError) {
+            console.warn('Update error', normalizeError(updateError));
+          } else {
             // Verify the update worked
-            const { data: updatedProfile } = await supabase
+            const { data: updatedProfile, error: vError } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', authData.user.id)
               .single();
+
+            if (vError) console.warn('Verify profile error', normalizeError(vError));
 
             if (updatedProfile && updatedProfile.role === 'admin') {
               adminProfile = updatedProfile;
@@ -168,7 +220,24 @@ const CreateAdminAccount = () => {
             .select()
             .single();
 
-          if (!createError && createdProfile) {
+          if (createError) {
+            console.warn('Create profile error', normalizeError(createError));
+
+            // If RLS or permission-related, attempt Edge Function fallback
+            const ne = normalizeError(createError);
+            const isRLS = ne.message?.toLowerCase().includes('row-level') || ne.code === 'PGRST301' || ne.message?.toLowerCase().includes('permission denied');
+            if (isRLS) {
+              console.log('Attempting Edge Function fallback due to RLS/permission issue');
+              const edgeResp = await callEdgeFix(authData.user.id);
+              if (edgeResp?.data?.success) {
+                adminProfile = edgeResp.data.profile;
+                break;
+              } else {
+                console.warn('Edge function fallback failed', edgeResp);
+              }
+            }
+
+          } else if (createdProfile) {
             adminProfile = createdProfile;
             break;
           }
@@ -178,10 +247,26 @@ const CreateAdminAccount = () => {
       }
 
       if (!adminProfile) {
+        // Try one last time with Edge Function before giving up
+        try {
+          console.log('Final attempt using Edge Function to create profile');
+          const edgeResp = await callEdgeFix(authData.user.id);
+          if (edgeResp?.data?.success) {
+            adminProfile = edgeResp.data.profile;
+          } else {
+            console.warn('Final Edge Function attempt failed', edgeResp);
+          }
+        } catch (e) {
+          console.error('Final edge function error', e);
+        }
+      }
+
+      if (!adminProfile) {
         return {
           success: false,
           message: `Admin account created but profile setup failed after ${maxAttempts} attempts. Please contact support with User ID: ${authData.user.id}`,
-          userId: authData.user.id
+          userId: authData.user.id,
+          error: { message: 'Profile creation failed', attempts }
         };
       }
 
@@ -200,10 +285,11 @@ const CreateAdminAccount = () => {
       };
 
     } catch (error: any) {
+      const nerr = normalizeError(error);
       return {
         success: false,
-        message: `Unexpected error: ${error.message}`,
-        error
+        message: `Unexpected error: ${nerr.message}`,
+        error: nerr
       };
     }
   };
