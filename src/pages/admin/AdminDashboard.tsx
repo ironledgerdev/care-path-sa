@@ -326,8 +326,23 @@ const AdminDashboardContent = () => {
       .subscribe();
   };
 
+  const getAdminToken = () => {
+    return (window as any).__ADMIN_TOKEN || localStorage.getItem('admin_token') || null;
+  };
+
   const fetchPendingDoctors = async () => {
     try {
+      const token = getAdminToken();
+      if (token) {
+        // Use Edge Function proxy to fetch pending doctors with service role
+        const { data, error } = await supabase.functions.invoke('admin-proxy', {
+          body: { token, action: 'fetch_pending_doctors' }
+        });
+        if (error || !data?.success) throw error || new Error(data?.error || 'Failed to fetch via proxy');
+        setPendingDoctors(data.data || []);
+        return;
+      }
+
       // First get pending doctors
       const { data: pendingData, error: pendingError } = await supabase
         .from('pending_doctors')
@@ -357,6 +372,7 @@ const AdminDashboardContent = () => {
 
       setPendingDoctors(enrichedData);
     } catch (error: any) {
+      console.error('fetchPendingDoctors error', error);
       toast({
         title: "Error",
         description: "Failed to fetch pending applications",
