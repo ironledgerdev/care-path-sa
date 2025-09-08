@@ -383,6 +383,16 @@ const AdminDashboardContent = () => {
 
   const fetchDashboardStats = async () => {
     try {
+      const token = getAdminToken();
+      if (token) {
+        const { data, error } = await supabase.functions.invoke('admin-proxy', {
+          body: { token, action: 'fetch_stats' }
+        });
+        if (error || !data?.success) throw error || new Error(data?.error || 'Failed to fetch stats via proxy');
+        setStats(data.stats);
+        return;
+      }
+
       const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
         supabase.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
