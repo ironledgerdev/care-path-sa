@@ -33,6 +33,7 @@ import {
   Shield
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -121,6 +122,11 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const auth = useAuth();
   const profile = overrideProfile ?? auth.profile;
   const { toast } = useToast();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const showDebug = params.get('debug') === '1';
+
+  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; stats?: any; errors: string[] }>({ errors: [] });
 
   useEffect(() => {
     // Only allow actual admin users, unless bypassAuth is true
@@ -778,6 +784,36 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
             </Card>
           </TabsContent>
         </Tabs>
+
+        {showDebug && (
+          <div className="mt-8">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>Debug / Raw Responses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold">Errors</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.errors, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Pending Doctors Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.pending, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Memberships Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.memberships, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Stats Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.stats, null, 2)}</pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
