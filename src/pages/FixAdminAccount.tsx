@@ -119,7 +119,11 @@ const FixAdminAccount = () => {
       // Test 4: Can we write to profiles table?
       debugOutput += `\n4. Testing write access...\n`;
       const testWriteData = {
-        id: 'test-' + Date.now(),
+        id: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        }),
         email: 'test@example.com',
         first_name: 'Test',
         last_name: 'User',
