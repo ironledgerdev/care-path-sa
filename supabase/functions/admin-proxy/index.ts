@@ -59,6 +59,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
+    if (action === 'fetch_stats') {
+      try {
+        const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
+          serviceSupabase.from('doctors').select('id', { count: 'exact' }),
+          serviceSupabase.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
+          serviceSupabase.from('bookings').select('total_amount', { count: 'exact' }),
+          serviceSupabase.from('profiles').select('id', { count: 'exact' }),
+          serviceSupabase.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)
+        ]);
+
+        const totalRevenue = bookingsResult.data?.reduce((sum: number, booking: any) => sum + (booking.total_amount || 0), 0) || 0;
+
+        return new Response(JSON.stringify({ success: true, stats: {
+          totalDoctors: doctorsResult.count || 0,
+          pendingApplications: pendingResult.count || 0,
+          totalBookings: bookingsResult.count || 0,
+          totalRevenue: totalRevenue / 100,
+          totalUsers: usersResult.count || 0,
+          premiumMembers: premiumResult.count || 0
+        }}), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ success: false, error: e.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+      }
+    }
+
     if (action === 'approve_doctor') {
       const doctorId = body?.doctorId;
       if (!doctorId) return new Response(JSON.stringify({ success: false, error: 'Missing doctorId' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
