@@ -31,11 +31,17 @@ const Support = lazy(() => import("./pages/Support"));
 const Careers = lazy(() => import("./pages/Careers"));
 const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const AdminAccess = lazy(() => import("./components/AdminAccess").then(module => ({ default: module.AdminAccess })));
 const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const Profile = lazy(() => import("./pages/Profile"));
+const DatabaseTest = lazy(() => import("./pages/DatabaseTest"));
+const TestSummary = lazy(() => import("./pages/TestSummary"));
+const CreateAdminAccount = lazy(() => import("./pages/CreateAdminAccount"));
+const AdminSetup = lazy(() => import("./pages/AdminSetup"));
+const RouteTest = lazy(() => import("./pages/RouteTest"));
+const FixAdminAccount = lazy(() => import("./pages/FixAdminAccount"));
+const ManualAdminSetup = lazy(() => import("./pages/ManualAdminSetup"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
@@ -99,13 +105,25 @@ const App = () => {
                         <Route path="/BookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/bookingSuccess" element={<Navigate to="/booking-success" replace />} />
                         <Route path="/doctor" element={<DoctorDashboard />} />
-                        <Route path="/admin-access" element={<AdminAccess />} />
+                        <Route path="/create-admin-account" element={<CreateAdminAccount />} />
+                        <Route path="/CreateAdminAccount" element={<Navigate to="/create-admin-account" replace />} />
+                        <Route path="/createAdminAccount" element={<Navigate to="/create-admin-account" replace />} />
+                        <Route path="/admin-setup" element={<AdminSetup />} />
+                        <Route path="/AdminSetup" element={<Navigate to="/admin-setup" replace />} />
+                        <Route path="/adminSetup" element={<Navigate to="/admin-setup" replace />} />
+                        <Route path="/admin_setup" element={<Navigate to="/admin-setup" replace />} />
+                        <Route path="/ADMIN_SETUP" element={<Navigate to="/admin-setup" replace />} />
                         <Route path="/bookings" element={<BookingHistory />} />
                         <Route path="/BookingHistory" element={<BookingHistory />} />
                         <Route path="/booking-history" element={<BookingHistory />} />
                         <Route path="/dashboard" element={<PatientDashboard />} />
                         <Route path="/verify-email" element={<EmailVerification />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/database-test" element={<DatabaseTest />} />
+                        <Route path="/test-summary" element={<TestSummary />} />
+                        <Route path="/route-test" element={<RouteTest />} />
+                        <Route path="/fix-admin-account" element={<FixAdminAccount />} />
+                        <Route path="/manual-admin-setup" element={<ManualAdminSetup />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
