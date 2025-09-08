@@ -99,6 +99,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: 'Doctor approved' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
+    if (action === 'update_pending_status') {
+      const id = body?.id;
+      const status = body?.status;
+      if (!id || !status) return new Response(JSON.stringify({ success: false, error: 'Missing id or status' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+
+      const { error: uErr } = await serviceSupabase
+        .from('pending_doctors')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (uErr) return new Response(JSON.stringify({ success: false, error: uErr.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+
+      return new Response(JSON.stringify({ success: true, message: 'Status updated' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    }
+
     return new Response(JSON.stringify({ success: false, error: 'Unknown action' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
 
   } catch (error: any) {
