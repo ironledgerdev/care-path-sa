@@ -123,6 +123,8 @@ const App = () => {
                         <Route path="/test-summary" element={<TestSummary />} />
                         <Route path="/route-test" element={<RouteTest />} />
                         <Route path="/fix-admin-account" element={<FixAdminAccount />} />
+                        <Route path="/FixAdminAccount" element={<Navigate to="/fix-admin-account" replace />} />
+                        <Route path="/fixAdminAccount" element={<Navigate to="/fix-admin-account" replace />} />
                         <Route path="/manual-admin-setup" element={<ManualAdminSetup />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
