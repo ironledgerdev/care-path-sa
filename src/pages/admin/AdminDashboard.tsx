@@ -128,20 +128,35 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
   const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; stats?: any; errors: string[] }>({ errors: [] });
 
+  const fetchAdminData = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-data');
+      if (error) throw error;
+      const payload = data as any;
+      if (payload?.pending) setPendingDoctors(payload.pending);
+      if (payload?.memberships) setUserMemberships(payload.memberships);
+      if (payload?.stats) setStats(payload.stats);
+
+      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
+    } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
+      toast({ title: 'Error', description: 'Failed to fetch admin data', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Only allow actual admin users, unless bypassAuth is true
     if (bypassAuth) {
-      fetchPendingDoctors();
-      fetchDashboardStats();
-      fetchUserMemberships();
+      fetchAdminData();
       setupRealtimeSubscriptions();
       return () => supabase.removeAllChannels();
     }
 
     if (profile?.role === 'admin') {
-      fetchPendingDoctors();
-      fetchDashboardStats();
-      fetchUserMemberships();
+      fetchAdminData();
       setupRealtimeSubscriptions();
     } else if (profile && (profile.role === 'patient' || profile.role === 'doctor')) {
       // User is logged in but not admin - redirect
