@@ -127,6 +127,76 @@ const AdminSetup = () => {
             </CardContent>
           </Card>
 
+          {/* Admin Token Management */}
+          <Card className="medical-hero-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Admin Access Tokens
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-white border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-3">Create one-time or permanent access links for admins. Tokens can be revoked or set to expire.</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <Button id="create-token" onClick={async () => {
+                    const gen = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { const r = (Math.random()*16)|0; const v = c === 'x' ? r : (r & 0x3) | 0x8; return v.toString(16); });
+                    const token = gen();
+                    const expiresAt = null; // default no expiry
+                    try {
+                      const { data, error } = await supabase.from('admin_tokens').insert([{ token, created_by: null, expires_at: expiresAt, revoked: false }]).select().single();
+                      if (error) throw error;
+                      navigator.clipboard.writeText(`${window.location.origin}/admin?token=${token}`);
+                      toast({ title: 'Admin Token Created', description: 'Token created and link copied to clipboard.' });
+                      // refresh tokens
+                      document.getElementById('refresh-tokens')?.click();
+                    } catch (e: any) {
+                      console.error('Create token error', e);
+                      toast({ title: 'Error', description: 'Unable to create token. Ensure admin_tokens table exists and you have permissions.', variant: 'destructive' });
+                    }
+                  }} size="sm" className="btn-medical-primary">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Create Token & Copy Link
+                  </Button>
+                  <Button id="refresh-tokens" onClick={async () => {
+                    try {
+                      const { data, error } = await supabase.from('admin_tokens').select('*').order('created_at', { ascending: false });
+                      if (error) throw error;
+                      const list = document.getElementById('tokens-list');
+                      if (list) list.innerHTML = '';
+                      (data || []).forEach((row: any) => {
+                        const li = document.createElement('div');
+                        li.className = 'p-2 border rounded mb-2 flex items-center justify-between';
+                        li.innerHTML = `<div class="flex-1 font-mono text-sm break-all">${window.location.origin}/admin?token=${row.token}<div class='text-xs text-muted-foreground'>Expires: ${row.expires_at || 'never'} | Revoked: ${row.revoked}</div></div>`;
+                        const btn = document.createElement('button');
+                        btn.className = 'ml-2 px-2 py-1 bg-red-600 text-white rounded text-xs';
+                        btn.textContent = 'Revoke';
+                        btn.onclick = async () => {
+                          try {
+                            const { error } = await supabase.from('admin_tokens').update({ revoked: true }).eq('token', row.token);
+                            if (error) throw error;
+                            (document.getElementById('refresh-tokens') as HTMLButtonElement).click();
+                          } catch (err) {
+                            console.error('Revoke error', err);
+                            toast({ title: 'Error', description: 'Unable to revoke token.', variant: 'destructive' });
+                          }
+                        };
+                        li.appendChild(btn);
+                        list?.appendChild(li);
+                      });
+                    } catch (e) {
+                      console.error('Fetch tokens error', e);
+                      toast({ title: 'Error', description: 'Unable to fetch tokens. Ensure admin_tokens table exists and you have permissions.', variant: 'destructive' });
+                    }
+                  }} size="sm" variant="outline">Refresh Tokens</Button>
+                </div>
+                <div id="tokens-list" />
+                <p className="text-xs text-muted-foreground mt-2">Note: Tokens are long random UUIDs — treat links as secrets. Anyone with the link gains admin access until token is revoked or expired.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+
           {/* Setup Steps */}
           <Card className="medical-hero-card mb-8">
             <CardHeader>
