@@ -37,6 +37,13 @@ const BookingHistory = lazy(() => import("./pages/BookingHistory"));
 const PatientDashboard = lazy(() => import("./pages/PatientDashboard"));
 const EmailVerification = lazy(() => import("./pages/EmailVerification"));
 const Profile = lazy(() => import("./pages/Profile"));
+const DatabaseTest = lazy(() => import("./pages/DatabaseTest"));
+const TestSummary = lazy(() => import("./pages/TestSummary"));
+const CreateAdminAccount = lazy(() => import("./pages/CreateAdminAccount"));
+const AdminSetup = lazy(() => import("./pages/AdminSetup"));
+const RouteTest = lazy(() => import("./pages/RouteTest"));
+const FixAdminAccount = lazy(() => import("./pages/FixAdminAccount"));
+const ManualAdminSetup = lazy(() => import("./pages/ManualAdminSetup"));
 
 // Lazy load notification center
 const NotificationCenter = lazy(() => 
