@@ -117,6 +117,13 @@ const App = () => {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/admin/AdminMashauPermits" element={<Navigate to="/admin-mashau-permits" replace />} />
                         <Route path="/AdminMashauPermits" element={<Navigate to="/admin-mashau-permits" replace />} />
+                        <Route path="/database-test" element={<DatabaseTest />} />
+                        <Route path="/test-summary" element={<TestSummary />} />
+                        <Route path="/create-admin-account" element={<CreateAdminAccount />} />
+                        <Route path="/admin-setup" element={<AdminSetup />} />
+                        <Route path="/route-test" element={<RouteTest />} />
+                        <Route path="/fix-admin-account" element={<FixAdminAccount />} />
+                        <Route path="/manual-admin-setup" element={<ManualAdminSetup />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
