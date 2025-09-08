@@ -638,6 +638,16 @@ const AdminDashboardContent = () => {
   const handleRejectDoctor = async (doctorId: string) => {
     setIsLoading(true);
     try {
+      const token = getAdminToken();
+      if (token) {
+        const { data, error } = await supabase.functions.invoke('admin-proxy', { body: { token, action: 'update_pending_status', id: doctorId, status: 'rejected' } });
+        if (error || !data?.success) throw error || new Error(data?.error || 'Proxy update failed');
+        toast({ title: 'Doctor Rejected', description: 'The doctor application has been rejected.' });
+        fetchPendingDoctors();
+        fetchDashboardStats();
+        return;
+      }
+
       const { error } = await supabase
         .from('pending_doctors')
         .update({ status: 'rejected' })
