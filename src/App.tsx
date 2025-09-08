@@ -18,6 +18,7 @@ const Team = lazy(() => import("./pages/Team"));
 const Legal = lazy(() => import("./pages/Legal"));
 const DoctorEnrollment = lazy(() => import("./pages/DoctorEnrollment"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminMashauPermits = lazy(() => import("./pages/admin/AdminMashauPermits"));
 const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
 const DoctorSearch = lazy(() => import("./pages/DoctorSearch"));
 const DoctorProfile = lazy(() => import("./pages/DoctorProfile"));
@@ -92,6 +93,7 @@ const App = () => {
                         <Route path="/careers" element={<Careers />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/admin-mashau-permits" element={<AdminMashauPermits />} />
                         <Route path="/search" element={<DoctorSearch />} />
                         <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
                         <Route path="/book/:doctorId" element={<BookAppointment />} />

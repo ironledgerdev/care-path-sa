@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminRoleManager } from '@/components/AdminRoleManager';
 import { AdminGuard } from '@/components/AdminGuard';
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -89,7 +89,7 @@ interface UserMembership {
   } | null;
 }
 
-const AdminDashboard = () => {
+export const AdminDashboard: React.FC = () => {
   return (
     <AdminGuard>
       <AdminDashboardContent />
@@ -97,7 +97,7 @@ const AdminDashboard = () => {
   );
 };
 
-const AdminDashboardContent = () => {
+export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth?: boolean }> = ({ overrideProfile, bypassAuth = false }) => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
   const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -118,11 +118,20 @@ const AdminDashboardContent = () => {
     role: 'patient' as 'patient' | 'doctor' | 'admin'
   });
   const [impersonateEmail, setImpersonateEmail] = useState('');
-  const { profile } = useAuth();
+  const auth = useAuth();
+  const profile = overrideProfile ?? auth.profile;
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only allow actual admin users, not sessionStorage bypass
+    // Only allow actual admin users, unless bypassAuth is true
+    if (bypassAuth) {
+      fetchPendingDoctors();
+      fetchDashboardStats();
+      fetchUserMemberships();
+      setupRealtimeSubscriptions();
+      return () => supabase.removeAllChannels();
+    }
+
     if (profile?.role === 'admin') {
       fetchPendingDoctors();
       fetchDashboardStats();
@@ -145,7 +154,8 @@ const AdminDashboardContent = () => {
       // Cleanup subscriptions when component unmounts
       supabase.removeAllChannels();
     };
-  }, [profile, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, toast, bypassAuth]);
 
   const setupRealtimeSubscriptions = () => {
     // Listen for new pending doctor applications
@@ -559,7 +569,7 @@ const AdminDashboardContent = () => {
   };
 
   // Show loading state while profile is being fetched
-  if (!profile) {
+  if (!profile && !bypassAuth) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -571,7 +581,7 @@ const AdminDashboardContent = () => {
   }
 
   // Show access denied for non-admin users
-  if (profile.role !== 'admin') {
+  if (!bypassAuth && profile?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="medical-hero-card max-w-md">
