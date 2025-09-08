@@ -306,7 +306,14 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       }) || [];
 
       setPendingDoctors(enrichedData);
+      // Save raw debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        pending: { pendingData, profilesData, enrichedData }
+      }));
     } catch (error: any) {
+      // Record error for debugging
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       toast({
         title: "Error",
         description: "Failed to fetch pending applications",
@@ -335,7 +342,14 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         totalUsers: usersResult.count || 0,
         premiumMembers: premiumResult.count || 0
       });
+
+      // Save raw debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        stats: { doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult }
+      }));
     } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       console.error('Failed to fetch dashboard stats:', error);
     }
   };
@@ -358,9 +372,12 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
       if (error) throw error;
       setUserMemberships((data as any) || []);
+      // Save raw debug info
+      setDebugInfo(prev => ({ ...prev, memberships: data }));
     } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to fetch user memberships",
         variant: "destructive",
       });
