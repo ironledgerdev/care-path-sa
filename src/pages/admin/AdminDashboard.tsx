@@ -522,6 +522,35 @@ const AdminDashboardContent = () => {
   const handleApproveDoctor = async (doctorId: string) => {
     setIsLoading(true);
     try {
+      const token = getAdminToken();
+      if (token) {
+        const { data, error } = await supabase.functions.invoke('admin-proxy', {
+          body: { token, action: 'approve_doctor', doctorId }
+        });
+        if (error || !data?.success) throw error || new Error(data?.error || 'Proxy approval failed');
+
+        // notify via existing send-email function
+        try {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'doctor_approved',
+              data: {
+                doctor_name: 'Doctor',
+                doctor_email: '',
+                practice_name: '',
+                speciality: ''
+              }
+            }
+          });
+        } catch (_) {}
+
+        toast({ title: 'Success', description: 'Doctor approved successfully!' });
+        fetchPendingDoctors();
+        fetchDashboardStats();
+        return;
+      }
+
+      // existing flow if no token
       // Get the pending doctor data with profile
       const { data: pendingDoctor, error: fetchError } = await supabase
         .from('pending_doctors')
