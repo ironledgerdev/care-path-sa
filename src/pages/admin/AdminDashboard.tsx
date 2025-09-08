@@ -122,26 +122,92 @@ const AdminDashboardContent = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only allow actual admin users, not sessionStorage bypass
-    if (profile?.role === 'admin') {
-      fetchPendingDoctors();
-      fetchDashboardStats();
-      fetchUserMemberships();
-      setupRealtimeSubscriptions();
-    } else if (profile && (profile.role === 'patient' || profile.role === 'doctor')) {
-      // User is logged in but not admin - redirect
-      toast({
-        title: "Access Denied",
-        description: "Admin privileges required to access this page.",
-        variant: "destructive",
-      });
-      // Redirect to home after showing error
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
-    }
+    let isMounted = true;
+
+    const validateAndInit = async () => {
+      // If user has admin role, proceed
+      if (profile?.role === 'admin') {
+        fetchPendingDoctors();
+        fetchDashboardStats();
+        fetchUserMemberships();
+        setupRealtimeSubscriptions();
+        return;
+      }
+
+      // Otherwise, check for token in query or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token') || (window as any).__ADMIN_TOKEN || localStorage.getItem('admin_token');
+
+      if (!tokenParam) {
+        if (profile && (profile.role === 'patient' || profile.role === 'doctor')) {
+          toast({
+            title: "Access Denied",
+            description: "Admin privileges required to access this page.",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        }
+        return;
+      }
+
+      // Validate token against admin_tokens table
+      try {
+        const { data: tokenRow, error: tokenError } = await supabase
+          .from('admin_tokens')
+          .select('*')
+          .eq('token', tokenParam)
+          .single();
+
+        if (tokenError || !tokenRow) {
+          toast({
+            title: "Access Denied",
+            description: "Invalid or revoked admin access token.",
+            variant: "destructive",
+          });
+          setTimeout(() => (window.location.href = '/'), 2000);
+          return;
+        }
+
+        // Check revoked/expiry
+        const now = new Date();
+        if (tokenRow.revoked) {
+          toast({ title: "Access Denied", description: "This admin token has been revoked.", variant: "destructive" });
+          setTimeout(() => (window.location.href = '/'), 2000);
+          return;
+        }
+        if (tokenRow.expires_at && new Date(tokenRow.expires_at) <= now) {
+          toast({ title: "Access Denied", description: "This admin token has expired.", variant: "destructive" });
+          setTimeout(() => (window.location.href = '/'), 2000);
+          return;
+        }
+
+        // Token valid — store it for subsequent requests and initialize dashboard
+        try {
+          localStorage.setItem('admin_token', tokenParam);
+          (window as any).__ADMIN_TOKEN = tokenParam;
+        } catch (e) {
+          // ignore storage errors
+        }
+
+        if (!isMounted) return;
+        fetchPendingDoctors();
+        fetchDashboardStats();
+        fetchUserMemberships();
+        setupRealtimeSubscriptions();
+
+      } catch (e: any) {
+        console.error('Token validation error', e);
+        toast({ title: "Access Denied", description: "Unable to validate admin token.", variant: "destructive" });
+        setTimeout(() => (window.location.href = '/'), 2000);
+      }
+    };
+
+    validateAndInit();
 
     return () => {
+      isMounted = false;
       // Cleanup subscriptions when component unmounts
       supabase.removeAllChannels();
     };
