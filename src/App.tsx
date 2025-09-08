@@ -108,6 +108,8 @@ const App = () => {
                         <Route path="/dashboard" element={<PatientDashboard />} />
                         <Route path="/verify-email" element={<EmailVerification />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/admin/AdminMashauPermits" element={<Navigate to="/admin-mashau-permits" replace />} />
+                        <Route path="/AdminMashauPermits" element={<Navigate to="/admin-mashau-permits" replace />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
