@@ -60,23 +60,33 @@ const AdminMashauPermits: React.FC = () => {
     }
   }, [authenticated]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const expected = import.meta.env.VITE_ADMIN_PASSWORD || '';
-    if (!expected) {
-      setError('No admin password configured on this deployment.');
+
+    if (!password) {
+      setError('Enter the admin password');
       return;
     }
 
-    if (password === expected) {
-      try {
-        sessionStorage.setItem(SESSION_KEY, '1');
-      } catch {}
-      setAuthenticated(true);
-      setError(null);
-    } else {
-      setError('Invalid password');
-      setAuthenticated(false);
+    try {
+      const result = await supabase.functions.invoke('verify-admin-password', { body: { password } });
+      if (result.error) {
+        console.error('verify-admin-password error', result.error);
+        setError('Server error verifying password');
+        return;
+      }
+      const data = result.data as any;
+      if (data?.valid) {
+        try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
+        setAuthenticated(true);
+        setError(null);
+      } else {
+        setError('Invalid password');
+        setAuthenticated(false);
+      }
+    } catch (err: any) {
+      console.error('Password verify failed', err);
+      setError('Failed to verify password');
     }
   };
 
