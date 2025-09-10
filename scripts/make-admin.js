@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://irvwoushpskgonjwwmap.supabase.co';
+const SUPABASE_URL = 'https://ualtuoghgruwxefqynfg.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = process.argv[2];
 
