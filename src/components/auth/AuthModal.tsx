@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -31,25 +30,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { refreshProfile } = useAuth();
 
+  const { signIn } = useAuth();
+
   const handleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await signIn(email, password);
       if (error) throw error;
 
-      // Refresh the profile to get latest user data
+      // Refresh the profile to get latest user data (noop for local admin)
       await refreshProfile();
 
-      // Get the user's profile to determine redirect
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
+      // Determine redirect based on profile
+      const role = (await (async () => {
+        // try to read profile from DB
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('email', email)
+            .limit(1)
+            .maybeSingle();
+          return profileData?.role;
+        } catch (e) {
+          // fallback to context profile
+          return null;
+        }
+      })()) || (useAuth().profile?.role);
 
       toast({
         title: "Success",
@@ -58,21 +65,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
       onClose();
 
-      // Redirect based on user role
       setTimeout(() => {
-        if (profile?.role === 'admin') {
+        if (role === 'admin' || useAuth().profile?.role === 'admin') {
           navigate('/admin');
-        } else if (profile?.role === 'doctor') {
+        } else if (role === 'doctor' || useAuth().profile?.role === 'doctor') {
           navigate('/doctor');
         } else {
-          navigate('/search'); // Patient goes to search page to book appointments
+          navigate('/search');
         }
       }, 500);
 
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || String(error),
         variant: "destructive",
       });
     } finally {
