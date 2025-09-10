@@ -21,6 +21,39 @@ const AdminMashauPermits: React.FC = () => {
     setError(null);
   }, [password]);
 
+  // If invite token present in URL, attempt verify
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get('invite');
+    if (invite && !authenticated) {
+      (async () => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || ''}/verify-admin-invite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: invite })
+          });
+
+          const data = await res.json();
+          if (res.ok && data?.valid) {
+            try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
+            setAuthenticated(true);
+            setError(null);
+            // clean url
+            const u = new URL(window.location.href);
+            u.searchParams.delete('invite');
+            window.history.replaceState({}, document.title, u.toString());
+            return;
+          } else {
+            setError(data?.error || 'Invalid invite token');
+          }
+        } catch (err) {
+          setError('Failed to verify invite');
+        }
+      })();
+    }
+  }, [authenticated]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const expected = import.meta.env.VITE_ADMIN_PASSWORD || '';
