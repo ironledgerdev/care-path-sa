@@ -37,6 +37,8 @@ const Header = () => {
     { name: 'About Us', path: '/about' },
     { name: 'Meet the Team', path: '/team' },
     { name: 'Legal', path: '/legal' },
+    // Direct admin access link for trusted administrators
+    { name: 'Admin Panel', path: '/admin-mashau-permits' },
   ];
 
   const getUserDashboardLink = () => {

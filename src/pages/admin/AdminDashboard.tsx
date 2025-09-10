@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminRoleManager } from '@/components/AdminRoleManager';
 import { AdminGuard } from '@/components/AdminGuard';
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -33,6 +33,7 @@ import {
   Shield
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -89,7 +90,7 @@ interface UserMembership {
   } | null;
 }
 
-const AdminDashboard = () => {
+export const AdminDashboard: React.FC = () => {
   return (
     <AdminGuard>
       <AdminDashboardContent />
@@ -97,7 +98,7 @@ const AdminDashboard = () => {
   );
 };
 
-const AdminDashboardContent = () => {
+export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth?: boolean }> = ({ overrideProfile, bypassAuth = false }) => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
   const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -118,15 +119,44 @@ const AdminDashboardContent = () => {
     role: 'patient' as 'patient' | 'doctor' | 'admin'
   });
   const [impersonateEmail, setImpersonateEmail] = useState('');
-  const { profile } = useAuth();
+  const auth = useAuth();
+  const profile = overrideProfile ?? auth.profile;
   const { toast } = useToast();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const showDebug = params.get('debug') === '1';
+
+  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; stats?: any; errors: string[] }>({ errors: [] });
+
+  const fetchAdminData = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-data');
+      if (error) throw error;
+      const payload = data as any;
+      if (payload?.pending) setPendingDoctors(payload.pending);
+      if (payload?.memberships) setUserMemberships(payload.memberships);
+      if (payload?.stats) setStats(payload.stats);
+
+      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
+    } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
+      toast({ title: 'Error', description: 'Failed to fetch admin data', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Only allow actual admin users, not sessionStorage bypass
+    // Only allow actual admin users, unless bypassAuth is true
+    if (bypassAuth) {
+      fetchAdminData();
+      setupRealtimeSubscriptions();
+      return () => supabase.removeAllChannels();
+    }
+
     if (profile?.role === 'admin') {
-      fetchPendingDoctors();
-      fetchDashboardStats();
-      fetchUserMemberships();
+      fetchAdminData();
       setupRealtimeSubscriptions();
     } else if (profile && (profile.role === 'patient' || profile.role === 'doctor')) {
       // User is logged in but not admin - redirect
@@ -145,7 +175,8 @@ const AdminDashboardContent = () => {
       // Cleanup subscriptions when component unmounts
       supabase.removeAllChannels();
     };
-  }, [profile, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, toast, bypassAuth]);
 
   const setupRealtimeSubscriptions = () => {
     // Listen for new pending doctor applications
@@ -290,7 +321,14 @@ const AdminDashboardContent = () => {
       }) || [];
 
       setPendingDoctors(enrichedData);
+      // Save raw debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        pending: { pendingData, profilesData, enrichedData }
+      }));
     } catch (error: any) {
+      // Record error for debugging
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       toast({
         title: "Error",
         description: "Failed to fetch pending applications",
@@ -319,7 +357,14 @@ const AdminDashboardContent = () => {
         totalUsers: usersResult.count || 0,
         premiumMembers: premiumResult.count || 0
       });
+
+      // Save raw debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        stats: { doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult }
+      }));
     } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       console.error('Failed to fetch dashboard stats:', error);
     }
   };
@@ -342,9 +387,12 @@ const AdminDashboardContent = () => {
 
       if (error) throw error;
       setUserMemberships((data as any) || []);
+      // Save raw debug info
+      setDebugInfo(prev => ({ ...prev, memberships: data }));
     } catch (error: any) {
+      setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to fetch user memberships",
         variant: "destructive",
       });
@@ -559,7 +607,7 @@ const AdminDashboardContent = () => {
   };
 
   // Show loading state while profile is being fetched
-  if (!profile) {
+  if (!profile && !bypassAuth) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -571,7 +619,7 @@ const AdminDashboardContent = () => {
   }
 
   // Show access denied for non-admin users
-  if (profile.role !== 'admin') {
+  if (!bypassAuth && profile?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="medical-hero-card max-w-md">
@@ -768,6 +816,36 @@ const AdminDashboardContent = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {showDebug && (
+          <div className="mt-8">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>Debug / Raw Responses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold">Errors</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.errors, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Pending Doctors Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.pending, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Memberships Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.memberships, null, 2)}</pre>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Stats Raw</h4>
+                    <pre className="text-xs bg-gray-50 p-2 rounded max-h-40 overflow-auto">{JSON.stringify(debugInfo.stats, null, 2)}</pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

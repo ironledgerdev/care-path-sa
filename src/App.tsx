@@ -18,6 +18,7 @@ const Team = lazy(() => import("./pages/Team"));
 const Legal = lazy(() => import("./pages/Legal"));
 const DoctorEnrollment = lazy(() => import("./pages/DoctorEnrollment"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminMashauPermits = lazy(() => import("./pages/admin/AdminMashauPermits"));
 const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
 const DoctorSearch = lazy(() => import("./pages/DoctorSearch"));
 const DoctorProfile = lazy(() => import("./pages/DoctorProfile"));
@@ -98,6 +99,7 @@ const App = () => {
                         <Route path="/careers" element={<Careers />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/admin-mashau-permits" element={<AdminMashauPermits />} />
                         <Route path="/search" element={<DoctorSearch />} />
                         <Route path="/doctor/:doctorId" element={<DoctorProfile />} />
                         <Route path="/book/:doctorId" element={<BookAppointment />} />
@@ -119,8 +121,7 @@ const App = () => {
                         <Route path="/dashboard" element={<PatientDashboard />} />
                         <Route path="/verify-email" element={<EmailVerification />} />
                         <Route path="/profile" element={<Profile />} />
-                        <Route path="/database-test" element={<DatabaseTest />} />
-                        <Route path="/test-summary" element={<TestSummary />} />
+
                         <Route path="/route-test" element={<RouteTest />} />
                         <Route path="/fix-admin-account" element={<FixAdminAccount />} />
                         <Route path="/manual-admin-setup" element={<ManualAdminSetup />} />
