@@ -30,18 +30,22 @@ const AdminMashauPermits: React.FC = () => {
     if (invite && !authenticated) {
       (async () => {
         try {
-          const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || ''}/verify-admin-invite`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: invite })
+          // Use Supabase Functions SDK via the client so auth/apikey & url are handled
+          const result = await supabase.functions.invoke('verify-admin-invite', {
+            body: { token: invite }
           });
 
-          const data = await res.json();
-          if (res.ok && data?.valid) {
+          if (result.error) {
+            console.error('verify-admin-invite error', result.error);
+            setError(result.error.message || 'Failed to verify invite');
+            return;
+          }
+
+          const data = result.data as any;
+          if (data?.valid) {
             try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
             setAuthenticated(true);
             setError(null);
-            // clean url
             const u = new URL(window.location.href);
             u.searchParams.delete('invite');
             window.history.replaceState({}, document.title, u.toString());
@@ -49,8 +53,9 @@ const AdminMashauPermits: React.FC = () => {
           } else {
             setError(data?.error || 'Invalid invite token');
           }
-        } catch (err) {
-          setError('Failed to verify invite');
+        } catch (err: any) {
+          console.error('invite verify fetch failed', err);
+          setError(err?.message || 'Failed to verify invite');
         }
       })();
     }
