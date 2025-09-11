@@ -64,9 +64,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       onClose();
 
       setTimeout(() => {
-        if (role === 'admin' || useAuth().profile?.role === 'admin') {
+        if (role === 'admin' || profile?.role === 'admin') {
           navigate('/admin');
-        } else if (role === 'doctor' || useAuth().profile?.role === 'doctor') {
+        } else if (role === 'doctor' || profile?.role === 'doctor') {
           navigate('/doctor');
         } else {
           navigate('/search');
