@@ -179,15 +179,15 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   }, [profile, toast, bypassAuth]);
 
   const setupRealtimeSubscriptions = () => {
-    // Listen for new pending doctor applications
+    // Listen for new doctor entries/updates
     const pendingDoctorsChannel = supabase
-      .channel('pending_doctors_changes')
+      .channel('doctors_changes')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'pending_doctors'
+          table: 'doctors'
         },
         () => {
           fetchPendingDoctors();
@@ -203,7 +203,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'pending_doctors'
+          table: 'doctors'
         },
         () => {
           fetchPendingDoctors();
@@ -293,11 +293,11 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
   const fetchPendingDoctors = async () => {
     try {
-      // First get pending doctors
+      // First get pending doctors from doctors table (awaiting approval)
       const { data: pendingData, error: pendingError } = await supabase
-        .from('pending_doctors')
+        .from('doctors')
         .select('*')
-        .eq('status', 'pending')
+        .is('approved_at', null)
         .order('created_at', { ascending: false });
 
       if (pendingError) throw pendingError;
@@ -316,6 +316,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         const profile = profilesData?.find(p => p.id === doctor.user_id);
         return {
           ...doctor,
+          status: 'pending',
           profiles: profile || { first_name: '', last_name: '', email: '' }
         };
       }) || [];
@@ -341,7 +342,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
     try {
       const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
-        supabase.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
+        supabase.from('doctors').select('id', { count: 'exact' }).is('approved_at', null),
         supabase.from('bookings').select('total_amount', { count: 'exact' }),
         supabase.from('profiles').select('id', { count: 'exact' }),
         supabase.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)
@@ -478,11 +479,12 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const handleApproveDoctor = async (doctorId: string) => {
     setIsLoading(true);
     try {
-      // Get the pending doctor data with profile
+      // Get the doctor awaiting approval
       const { data: pendingDoctor, error: fetchError } = await supabase
-        .from('pending_doctors')
+        .from('doctors')
         .select('*')
         .eq('id', doctorId)
+        .is('approved_at', null)
         .single();
       if (fetchError) throw fetchError;
 
@@ -493,27 +495,17 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         .single();
       if (profileError) throw profileError;
 
-      // Move to doctors table with approval metadata
-      const { error: insertError } = await supabase
+      // Approve doctor in-place
+      const { error: updateDoctorError } = await supabase
         .from('doctors')
-        .insert({
-          user_id: pendingDoctor.user_id,
-          practice_name: pendingDoctor.practice_name,
-          speciality: pendingDoctor.speciality,
-          qualification: pendingDoctor.qualification,
-          license_number: pendingDoctor.license_number,
-          years_experience: pendingDoctor.years_experience,
-          consultation_fee: pendingDoctor.consultation_fee,
-          address: pendingDoctor.address,
-          city: pendingDoctor.city,
-          province: pendingDoctor.province,
-          postal_code: pendingDoctor.postal_code,
-          bio: pendingDoctor.bio,
+        .update({
           is_available: true,
           approved_at: new Date().toISOString(),
           approved_by: profile?.id || null,
-        });
-      if (insertError) throw insertError;
+        })
+        .eq('id', doctorId)
+        .is('approved_at', null);
+      if (updateDoctorError) throw updateDoctorError;
 
       // Update profile role to doctor
       const { error: roleError } = await supabase
@@ -521,13 +513,6 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         .update({ role: 'doctor', updated_at: new Date().toISOString() })
         .eq('id', pendingDoctor.user_id);
       if (roleError) throw roleError;
-
-      // Update pending status
-      const { error: updateError } = await supabase
-        .from('pending_doctors')
-        .update({ status: 'approved' })
-        .eq('id', doctorId);
-      if (updateError) throw updateError;
 
       // Notify doctor approved via email
       try {
@@ -566,9 +551,10 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('pending_doctors')
-        .update({ status: 'rejected' })
-        .eq('id', doctorId);
+        .from('doctors')
+        .delete()
+        .eq('id', doctorId)
+        .is('approved_at', null);
 
       if (error) throw error;
 
