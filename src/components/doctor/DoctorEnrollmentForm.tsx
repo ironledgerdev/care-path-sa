@@ -194,7 +194,11 @@ export const DoctorEnrollmentForm = () => {
       if (!success) {
         // 3) Last resort for logged-in users: write directly to pending_doctors
         if (user) {
-          const { error: insertError } = await supabase
+          // Try inserting directly into doctors; if a schema/cache error occurs, fallback into pending_doctors
+          const years = parseInt(formData.years_experience || '0') || 0;
+          const feeCents = Math.round(parseFloat(formData.consultation_fee || '0') * 100) || 0;
+
+          let { error: insertError } = await supabase
             .from('doctors')
             .insert({
               user_id: user.id,
@@ -202,8 +206,8 @@ export const DoctorEnrollmentForm = () => {
               speciality: formData.speciality,
               qualification: formData.qualification,
               license_number: formData.license_number,
-              years_experience: parseInt(formData.years_experience || '0'),
-              consultation_fee: Math.round(parseFloat(formData.consultation_fee || '0') * 100),
+              years_experience: years,
+              consultation_fee: feeCents,
               address: formData.address,
               city: formData.city,
               province: formData.province,
@@ -213,12 +217,45 @@ export const DoctorEnrollmentForm = () => {
               approved_at: null,
               approved_by: null,
             });
-          if (insertError) throw insertError;
 
-          toast({
-            title: 'Application Submitted',
-            description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
-          });
+          if (insertError) {
+            const msg = (insertError && (insertError.message || String(insertError))) || '';
+            console.warn('Direct doctors insert failed, attempting pending_doctors fallback:', msg);
+
+            const isSchemaCacheError = /could not find the .* column of 'doctors' in the schema cache|could not find the.*column of 'doctors' in the schema cache|column .* of .*doctors.* does not exist/i.test(msg);
+
+            if (isSchemaCacheError) {
+              const { error: fallbackErr } = await supabase.from('pending_doctors').insert({
+                user_id: user.id,
+                practice_name: formData.practice_name,
+                speciality: formData.speciality,
+                qualification: formData.qualification,
+                license_number: formData.license_number,
+                years_experience: years,
+                consultation_fee: feeCents,
+                address: formData.address,
+                city: formData.city,
+                province: formData.province,
+                postal_code: formData.postal_code,
+                bio: formData.bio,
+                status: 'pending'
+              });
+
+              if (fallbackErr) throw fallbackErr;
+
+              toast({
+                title: 'Application Submitted',
+                description: "Your application has been received and queued for review. We'll contact you within 2-3 business days.",
+              });
+            } else {
+              throw insertError;
+            }
+          } else {
+            toast({
+              title: 'Application Submitted',
+              description: "Your application has been submitted for review. We'll contact you within 2-3 business days.",
+            });
+          }
         } else {
           const msg = (finalError && (finalError.message || String(finalError))) || 'Edge Function unavailable';
           throw new Error(msg.includes('Failed to fetch') ? 'Network/CORS issue calling Edge Function. Please sign in and try again, or retry later.' : msg);
