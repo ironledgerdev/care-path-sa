@@ -102,25 +102,60 @@ Deno.serve(async (req) => {
     const years = parseInt(form.years_experience || '0', 10) || 0;
     const feeCents = Math.round(parseFloat(form.consultation_fee || '0') * 100) || 0;
 
-    const { error: insertErr } = await service.from('doctors').insert({
-      user_id: userId,
-      practice_name: form.practice_name,
-      speciality: form.speciality,
-      qualification: form.qualification,
-      license_number: form.license_number,
-      years_experience: years,
-      consultation_fee: feeCents,
-      address: form.address,
-      city: form.city,
-      province: form.province,
-      postal_code: form.postal_code,
-      bio: form.bio,
-      is_available: false,
-      approved_at: null,
-      approved_by: null
-    });
+    let insertErr: any = null;
+    try {
+      const resp = await service.from('doctors').insert({
+        user_id: userId,
+        practice_name: form.practice_name,
+        speciality: form.speciality,
+        qualification: form.qualification,
+        license_number: form.license_number,
+        years_experience: years,
+        consultation_fee: feeCents,
+        address: form.address,
+        city: form.city,
+        province: form.province,
+        postal_code: form.postal_code,
+        bio: form.bio,
+        is_available: false,
+        approved_at: null,
+        approved_by: null
+      });
+      insertErr = resp.error;
+    } catch (err: any) {
+      insertErr = err;
+    }
 
-    if (insertErr) throw insertErr;
+    // Fallback: if doctors insert failed due to schema (missing column), write to pending_doctors instead
+    if (insertErr) {
+      const errMsg = (insertErr && (insertErr.message || insertErr.error || String(insertErr))) || '';
+      console.error('Doctors insert error:', errMsg);
+
+      const isSchemaError = /column .* of .*doctors.* does not exist|undefined_column|invalid input for/.test(errMsg.toLowerCase());
+
+      if (isSchemaError) {
+        console.warn('Falling back to insert into pending_doctors due to schema mismatch');
+        const { error: fallbackErr } = await service.from('pending_doctors').insert({
+          user_id: userId,
+          practice_name: form.practice_name,
+          speciality: form.speciality,
+          qualification: form.qualification,
+          license_number: form.license_number,
+          years_experience: years,
+          consultation_fee: feeCents,
+          address: form.address,
+          city: form.city,
+          province: form.province,
+          postal_code: form.postal_code,
+          bio: form.bio,
+          status: 'pending'
+        });
+
+        if (fallbackErr) throw fallbackErr;
+      } else {
+        throw insertErr;
+      }
+    }
 
     // Notify via email (custom template)
     try {
