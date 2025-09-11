@@ -98,6 +98,22 @@ Deno.serve(async (req) => {
       }, { onConflict: 'id' });
     }
 
+    // Ensure a profile row exists for this user (for logged-in users, upsert with patient role until approval)
+    if (userId) {
+      try {
+        await service.from('profiles').upsert({
+          id: userId,
+          email: emailForNotifications,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          role: 'patient',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (upsertProfileErr) {
+        console.warn('Failed to upsert profile for user:', upsertProfileErr);
+      }
+    }
+
     // Insert pending doctor application
     const years = parseInt(form.years_experience || '0', 10) || 0;
     const feeCents = Math.round(parseFloat(form.consultation_fee || '0') * 100) || 0;
