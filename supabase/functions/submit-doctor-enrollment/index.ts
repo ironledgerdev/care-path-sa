@@ -147,30 +147,39 @@ Deno.serve(async (req) => {
       const errMsg = (insertErr && (insertErr.message || insertErr.error || String(insertErr))) || '';
       console.error('Doctors insert error:', errMsg);
 
-      const isSchemaError = /column .* of .*doctors.* does not exist|undefined_column|invalid input for/.test(errMsg.toLowerCase());
+      // Detect common schema/cache errors (various Postgres/Supabase messages)
+    const schemaPatterns = [
+      /column .* of .*doctors.* does not exist/i,
+      /could not find the .* column of .*doctors.* in the schema cache/i,
+      /undefined_column/i,
+      /invalid input for/i,
+      /column .* of .*does not exist/i
+    ];
 
-      if (isSchemaError) {
-        console.warn('Falling back to insert into pending_doctors due to schema mismatch');
-        const { error: fallbackErr } = await service.from('pending_doctors').insert({
-          user_id: userId,
-          practice_name: form.practice_name,
-          speciality: form.speciality,
-          qualification: form.qualification,
-          license_number: form.license_number,
-          years_experience: years,
-          consultation_fee: feeCents,
-          address: form.address,
-          city: form.city,
-          province: form.province,
-          postal_code: form.postal_code,
-          bio: form.bio,
-          status: 'pending'
-        });
+    const isSchemaError = schemaPatterns.some((rx) => rx.test(errMsg));
 
-        if (fallbackErr) throw fallbackErr;
-      } else {
-        throw insertErr;
-      }
+    if (isSchemaError) {
+      console.warn('Falling back to insert into pending_doctors due to schema/cache mismatch:', errMsg);
+      const { error: fallbackErr } = await service.from('pending_doctors').insert({
+        user_id: userId,
+        practice_name: form.practice_name,
+        speciality: form.speciality,
+        qualification: form.qualification,
+        license_number: form.license_number,
+        years_experience: years,
+        consultation_fee: feeCents,
+        address: form.address,
+        city: form.city,
+        province: form.province,
+        postal_code: form.postal_code,
+        bio: form.bio,
+        status: 'pending'
+      });
+
+      if (fallbackErr) throw fallbackErr;
+    } else {
+      throw insertErr;
+    }
     }
 
     // Notify via email (custom template)
