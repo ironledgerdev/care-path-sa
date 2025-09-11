@@ -32,27 +32,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Supabase profile fetch error:', error);
-        // Ensure we throw a real Error with a string message so callers can display it
-        throw new Error((error as any)?.message ?? JSON.stringify(error));
-      }
-
-      setProfile(data);
-    } catch (err: any) {
-      const msg = err?.message ?? JSON.stringify(err);
-      console.error('Error fetching profile:', msg);
+    // Do not throw to callers - instead handle errors locally and setProfile(null).
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      console.warn('Offline - skipping profile fetch');
       setProfile(null);
-      // Re-throw a normalized Error so callers/getting code can show a useful message
-      throw new Error(msg);
+      return null;
     }
+
+    const maxAttempts = 3;
+    let attempt = 0;
+
+    while (attempt < maxAttempts) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          // If error looks like a network transport error, retry
+          const errMsg = (error as any)?.message ?? JSON.stringify(error);
+          if (/failed to fetch|networkerror|network error|timeout/i.test(errMsg)) {
+            attempt++;
+            const wait = 200 * attempt;
+            console.warn(`Network error fetching profile, retrying (${attempt}/${maxAttempts})...`, errMsg);
+            await new Promise((r) => setTimeout(r, wait));
+            continue;
+          }
+
+          console.error('Supabase profile fetch error:', error);
+          setProfile(null);
+          return null;
+        }
+
+        setProfile(data as Profile);
+        return data;
+      } catch (err: any) {
+        const msg = err?.message ?? JSON.stringify(err);
+        // Retry on TypeError / Failed to fetch
+        if (/failed to fetch|networkerror|network error|timeout/i.test(msg)) {
+          attempt++;
+          const wait = 200 * attempt;
+          console.warn(`Fetch threw network error, retrying (${attempt}/${maxAttempts})...`, msg);
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+
+        console.error('Unexpected error fetching profile:', msg);
+        setProfile(null);
+        return null;
+      }
+    }
+
+    console.error('Failed to fetch profile after retries');
+    setProfile(null);
+    return null;
   };
 
   const refreshProfile = async () => {
