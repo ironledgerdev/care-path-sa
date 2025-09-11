@@ -98,22 +98,39 @@ export const DoctorEnrollmentForm = () => {
 
           const host = new URL(SUPABASE_URL).hostname; // e.g. irvwoushpskgonjwwmap.supabase.co
           const projectRef = host.split('.')[0];
-          const fnUrl = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
+          const fnUrl1 = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
+          const fnUrl2 = `${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/submit-doctor-enrollment`;
 
           // Log for debugging
-          console.debug('Fallback fetch to Edge Function URL:', fnUrl);
+          console.debug('Fallback fetch to Edge Function URLs:', fnUrl1, fnUrl2);
 
-          const resp = await fetch(fnUrl, {
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'omit',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_PUBLISHABLE_KEY,
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ form: formData, applicant: user ? undefined : applicant })
-          });
+          // Try primary fallback endpoint first, then the alternative
+          const tryFetch = async (url: string) => {
+            return await fetch(url, {
+              method: 'POST',
+              mode: 'cors',
+              credentials: 'omit',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_PUBLISHABLE_KEY,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({ form: formData, applicant: user ? undefined : applicant }),
+            });
+          };
+
+          let resp: Response | null = null;
+          try {
+            resp = await tryFetch(fnUrl1);
+          } catch (err1) {
+            console.warn('Fetch to fnUrl1 failed, trying fnUrl2', err1);
+            try {
+              resp = await tryFetch(fnUrl2);
+            } catch (err2) {
+              console.error('Both fallback fetch attempts failed', err1, err2);
+              throw err2 || err1;
+            }
+          }
 
           if (resp.ok) {
             const json = await resp.json().catch(() => null);
