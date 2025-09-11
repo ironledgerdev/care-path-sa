@@ -153,7 +153,7 @@ const OptimizedAdminDashboardContent = memo(() => {
     try {
       const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
-        supabase.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
+        supabase.from('doctors').select('id', { count: 'exact' }).is('approved_at', null),
         supabase.from('bookings').select('total_amount', { count: 'exact' }),
         supabase.from('profiles').select('id', { count: 'exact' }),
         supabase.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)
@@ -177,9 +177,9 @@ const OptimizedAdminDashboardContent = memo(() => {
   const fetchPendingDoctors = useCallback(async () => {
     try {
       const { data: pendingData, error: pendingError } = await supabase
-        .from('pending_doctors')
+        .from('doctors')
         .select('*')
-        .eq('status', 'pending')
+        .is('approved_at', null)
         .order('created_at', { ascending: false });
 
       if (pendingError) throw pendingError;
@@ -196,6 +196,7 @@ const OptimizedAdminDashboardContent = memo(() => {
         const profile = profilesData?.find(p => p.id === doctor.user_id);
         return {
           ...doctor,
+          status: 'pending',
           profiles: profile || { first_name: '', last_name: '', email: '' }
         };
       }) || [];
@@ -214,39 +215,25 @@ const OptimizedAdminDashboardContent = memo(() => {
     setIsLoading(true);
     try {
       const { data: pendingDoctor, error: fetchError } = await supabase
-        .from('pending_doctors')
+        .from('doctors')
         .select('*')
         .eq('id', doctorId)
+        .is('approved_at', null)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const { error: insertError } = await supabase
+      const { error: updateDoctorError } = await supabase
         .from('doctors')
-        .insert({
-          user_id: pendingDoctor.user_id,
-          practice_name: pendingDoctor.practice_name,
-          speciality: pendingDoctor.speciality,
-          qualification: pendingDoctor.qualification,
-          license_number: pendingDoctor.license_number,
-          years_experience: pendingDoctor.years_experience,
-          consultation_fee: pendingDoctor.consultation_fee,
-          address: pendingDoctor.address,
-          city: pendingDoctor.city,
-          province: pendingDoctor.province,
-          postal_code: pendingDoctor.postal_code,
-          bio: pendingDoctor.bio,
-          is_available: true
-        });
+        .update({
+          is_available: true,
+          approved_at: new Date().toISOString(),
+          approved_by: profile?.id || null,
+        })
+        .eq('id', doctorId)
+        .is('approved_at', null);
 
-      if (insertError) throw insertError;
-
-      const { error: updateError } = await supabase
-        .from('pending_doctors')
-        .update({ status: 'approved' })
-        .eq('id', doctorId);
-
-      if (updateError) throw updateError;
+      if (updateDoctorError) throw updateDoctorError;
 
       toast({
         title: "Success",
@@ -270,9 +257,10 @@ const OptimizedAdminDashboardContent = memo(() => {
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('pending_doctors')
-        .update({ status: 'rejected' })
-        .eq('id', doctorId);
+        .from('doctors')
+        .delete()
+        .eq('id', doctorId)
+        .is('approved_at', null);
 
       if (error) throw error;
 
