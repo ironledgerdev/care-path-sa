@@ -92,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfile(session.user.id).catch((e) => {
+              console.error('Failed to fetch profile in auth listener:', e?.message ?? e);
+            });
           }, 0);
         } else {
           setProfile(null);
