@@ -92,7 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      try {
+        await fetchProfile(user.id);
+      } catch (e) {
+        // fetchProfile no longer throws, but keep safe - log and continue
+        console.error('refreshProfile failed:', e?.message ?? e);
+      }
     }
   };
 
