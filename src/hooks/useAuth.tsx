@@ -109,7 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).catch((e) => {
+          console.error('Failed to fetch profile on init:', e?.message ?? e);
+        });
       }
       setLoading(false);
     });
