@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     const years = parseInt(form.years_experience || '0', 10) || 0;
     const feeCents = Math.round(parseFloat(form.consultation_fee || '0') * 100) || 0;
 
-    const { error: insertErr } = await service.from('pending_doctors').insert({
+    const { error: insertErr } = await service.from('doctors').insert({
       user_id: userId,
       practice_name: form.practice_name,
       speciality: form.speciality,
@@ -115,7 +115,9 @@ Deno.serve(async (req) => {
       province: form.province,
       postal_code: form.postal_code,
       bio: form.bio,
-      status: 'pending'
+      is_available: false,
+      approved_at: null,
+      approved_by: null
     });
 
     if (insertErr) throw insertErr;

@@ -22,10 +22,11 @@ Deno.serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // Fetch pending doctors
+    // Fetch pending doctors from doctors table (approved_at is null)
     const pendingResp = await supabaseAdmin
-      .from('pending_doctors')
+      .from('doctors')
       .select('*')
+      .is('approved_at', null)
       .order('created_at', { ascending: false });
 
     // Fetch profiles for pending (to enrich)
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
     // Stats: counts and revenue
     const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
       supabaseAdmin.from('doctors').select('id', { count: 'exact' }),
-      supabaseAdmin.from('pending_doctors').select('id', { count: 'exact' }).eq('status', 'pending'),
+      supabaseAdmin.from('doctors').select('id', { count: 'exact' }).is('approved_at', null),
       supabaseAdmin.from('bookings').select('total_amount', { count: 'exact' }),
       supabaseAdmin.from('profiles').select('id', { count: 'exact' }),
       supabaseAdmin.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)

@@ -119,13 +119,23 @@ export const DoctorEnrollmentForm = () => {
         // 3) Last resort for logged-in users: write directly to pending_doctors
         if (user) {
           const { error: insertError } = await supabase
-            .from('pending_doctors')
+            .from('doctors')
             .insert({
               user_id: user.id,
-              ...formData,
-              consultation_fee: parseInt(formData.consultation_fee) * 100,
-              years_experience: parseInt(formData.years_experience),
-              status: 'pending',
+              practice_name: formData.practice_name,
+              speciality: formData.speciality,
+              qualification: formData.qualification,
+              license_number: formData.license_number,
+              years_experience: parseInt(formData.years_experience || '0'),
+              consultation_fee: Math.round(parseFloat(formData.consultation_fee || '0') * 100),
+              address: formData.address,
+              city: formData.city,
+              province: formData.province,
+              postal_code: formData.postal_code,
+              bio: formData.bio,
+              is_available: false,
+              approved_at: null,
+              approved_by: null,
             });
           if (insertError) throw insertError;
 
