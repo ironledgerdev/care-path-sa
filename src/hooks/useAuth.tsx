@@ -144,17 +144,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        fetchProfile(session.user.id).catch((e) => {
-          console.error('Failed to fetch profile on init:', e?.message ?? e);
-        });
-      }
-      setLoading(false);
-    });
+        if (session?.user) {
+          fetchProfile(session.user.id).catch((e) => {
+            console.error('Failed to fetch profile on init:', e?.message ?? e);
+          });
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error('supabase.auth.getSession failed:', e?.message ?? e);
+        setLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
