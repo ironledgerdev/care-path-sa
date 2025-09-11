@@ -70,15 +70,24 @@ export const DoctorEnrollmentForm = () => {
     setIsLoading(true);
     try {
       // 1) Primary path: invoke via supabase-js
-      const { data, error } = await supabase.functions.invoke('submit-doctor-enrollment', {
-        body: {
-          form: formData,
-          applicant: user ? undefined : applicant
-        }
-      });
+      let success = false;
+      let finalError: any = null;
 
-      let success = Boolean(data?.success && !error);
-      let finalError: any = error;
+      try {
+        const { data, error } = await supabase.functions.invoke('submit-doctor-enrollment', {
+          body: {
+            form: formData,
+            applicant: user ? undefined : applicant
+          }
+        });
+        success = Boolean(data?.success && !error);
+        finalError = error ?? null;
+      } catch (invokeErr: any) {
+        // Capture network/transport errors from supabase-js invoke
+        console.error('supabase.functions.invoke error:', invokeErr);
+        success = false;
+        finalError = invokeErr;
+      }
 
       // 2) Fallback: direct fetch to functions endpoint (handles rare transport errors)
       if (!success) {
@@ -90,6 +99,9 @@ export const DoctorEnrollmentForm = () => {
           const host = new URL(SUPABASE_URL).hostname; // e.g. irvwoushpskgonjwwmap.supabase.co
           const projectRef = host.split('.')[0];
           const fnUrl = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
+
+          // Log for debugging
+          console.debug('Fallback fetch to Edge Function URL:', fnUrl);
 
           const resp = await fetch(fnUrl, {
             method: 'POST',
@@ -104,13 +116,17 @@ export const DoctorEnrollmentForm = () => {
           });
 
           if (resp.ok) {
-            const json = await resp.json();
+            const json = await resp.json().catch(() => null);
             success = Boolean(json?.success);
+            if (!success) {
+              finalError = new Error('Edge Function returned unsuccessful response');
+            }
           } else {
             const text = await resp.text().catch(() => '');
             finalError = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
           }
         } catch (fallbackErr: any) {
+          console.error('Fallback fetch error:', fallbackErr);
           finalError = fallbackErr;
         }
       }
