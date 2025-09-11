@@ -39,11 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase profile fetch error:', error);
+        // Ensure we throw a real Error with a string message so callers can display it
+        throw new Error((error as any)?.message ?? JSON.stringify(error));
+      }
+
       setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (err: any) {
+      const msg = err?.message ?? JSON.stringify(err);
+      console.error('Error fetching profile:', msg);
       setProfile(null);
+      // Re-throw a normalized Error so callers/getting code can show a useful message
+      throw new Error(msg);
     }
   };
 
