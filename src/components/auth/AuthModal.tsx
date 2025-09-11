@@ -54,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           // fallback to context profile
           return null;
         }
-      })()) || (useAuth().profile?.role);
+      })()) || profile?.role;
 
       toast({
         title: "Success",
