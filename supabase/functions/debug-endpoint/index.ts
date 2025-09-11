@@ -1,48 +1,75 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+console.info('debug-endpoint function starting');
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, Authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Max-Age": "86400",
-};
+Deno.serve(async (req: Request) => {
+  const url = new URL(req.url);
+  const method = req.method.toUpperCase();
+  const origin = req.headers.get('origin') || '*';
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+  // Common CORS headers
+  const corsHeaders = new Headers();
+  corsHeaders.set('Access-Control-Allow-Origin', origin);
+  corsHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  corsHeaders.set('Access-Control-Allow-Headers', req.headers.get('access-control-request-headers') || 'Content-Type, Authorization');
+  corsHeaders.set('Access-Control-Max-Age', '600');
+
+  // Handle preflight
+  if (method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
-  try {
-    const url = new URL(req.url);
-
-    // Provide a lightweight health response. Do NOT return secrets.
-    const payload = {
-      ok: true,
-      path: url.pathname,
-      method: req.method,
-      headers: {
-        origin: req.headers.get('origin') || null,
-        host: req.headers.get('host') || null,
-      },
-      time: new Date().toISOString(),
-      env: {
-        // Only indicate presence/absence of important env vars — do not echo values
-        HAS_SUPABASE_URL: !!Deno.env.get('SUPABASE_URL'),
-        HAS_SUPABASE_ANON_KEY: !!Deno.env.get('SUPABASE_ANON_KEY'),
-        HAS_SUPABASE_SERVICE_ROLE_KEY: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-        HAS_PAYFAST_CREDS: !!(Deno.env.get('PAYFAST_MERCHANT_ID') && Deno.env.get('PAYFAST_MERCHANT_KEY') && Deno.env.get('PAYFAST_PASSPHRASE')),
+  // Parse query params
+  const query: Record<string, string | string[]> = {};
+  for (const [k, v] of url.searchParams) {
+    if (Object.prototype.hasOwnProperty.call(query, k)) {
+      const cur = query[k];
+      if (Array.isArray(cur)) {
+        cur.push(v);
+      } else {
+        query[k] = [cur as string, v];
       }
-    };
-
-    return new Response(JSON.stringify(payload), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (err) {
-    console.error('debug-endpoint error', err);
-    return new Response(JSON.stringify({ ok: false, error: (err && err.message) || String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    } else {
+      query[k] = v;
+    }
   }
+
+  // Parse headers into an object
+  const headersObj: Record<string, string> = {};
+  for (const [k, v] of req.headers) headersObj[k] = v;
+
+  // Attempt to parse body (JSON or text)
+  let body: unknown = null;
+  try {
+    const ct = req.headers.get('content-type') || '';
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      if (ct.includes('application/json')) {
+        body = await req.json();
+      } else {
+        body = await req.text();
+      }
+    }
+  } catch (e) {
+    body = `__body_parse_error__: ${String(e)}`;
+  }
+
+  const payload = {
+    method,
+    url: url.href,
+    path: url.pathname,
+    query,
+    headers: headersObj,
+    body,
+    forwarded_for: req.headers.get('x-forwarded-for') || null,
+    timestamp: new Date().toISOString(),
+  };
+
+  const respHeaders = new Headers(corsHeaders);
+  respHeaders.set('Content-Type', 'application/json');
+
+  return new Response(JSON.stringify(payload, null, 2), {
+    status: 200,
+    headers: respHeaders,
+  });
 });
