@@ -100,47 +100,90 @@ export const DoctorEnrollmentForm = () => {
           const projectRef = host.split('.')[0];
           const fnUrl1 = `https://${projectRef}.functions.supabase.co/submit-doctor-enrollment`;
           const fnUrl2 = `${SUPABASE_URL.replace(/\/$/, '')}/functions/v1/submit-doctor-enrollment`;
+          const debugUrl = `https://${projectRef}.functions.supabase.co/debug-endpoint`;
 
           // Log for debugging
           console.debug('Fallback fetch to Edge Function URLs:', fnUrl1, fnUrl2);
+          console.debug('Debug endpoint URL:', debugUrl);
 
-          // Try primary fallback endpoint first, then the alternative
-          const tryFetch = async (url: string) => {
-            return await fetch(url, {
-              method: 'POST',
-              mode: 'cors',
-              credentials: 'omit',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_PUBLISHABLE_KEY,
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({ form: formData, applicant: user ? undefined : applicant }),
-            });
+          // helper: fetch with timeout
+          const fetchWithTimeout = async (url: string, opts: RequestInit = {}, timeoutMs = 7000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              return await fetch(url, { ...opts, signal: controller.signal });
+            } finally {
+              clearTimeout(id);
+            }
+          };
+
+          // helper: retry on transient failures
+          const retryFetch = async (url: string, opts: RequestInit = {}, attempts = 2, delayMs = 500) => {
+            let lastErr: any = null;
+            for (let i = 0; i < attempts; i++) {
+              try {
+                const res = await fetchWithTimeout(url, opts, 7000);
+                return res;
+              } catch (err) {
+                lastErr = err;
+                // exponential backoff
+                await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+              }
+            }
+            throw lastErr;
+          };
+
+          // Probe debug endpoint first (non-blocking, best-effort) to differentiate network/CORS issues
+          try {
+            const probe = await fetchWithTimeout(debugUrl, { method: 'GET', headers: { Origin: window.location?.origin || '' } }, 3000).catch((e) => { throw e; });
+            if (probe && probe.ok) {
+              const dbg = await probe.json().catch(() => null);
+              console.debug('Debug endpoint reachable, probe response:', dbg);
+            } else {
+              console.warn('Debug endpoint responded non-OK or empty');
+            }
+          } catch (probeErr) {
+            console.warn('Debug endpoint probe failed (network/CORS likely):', probeErr);
+            // continue to attempt function call, but keep note in logs
+          }
+
+          const commonHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          };
+
+          const bodyPayload = JSON.stringify({ form: formData, applicant: user ? undefined : applicant });
+
+          // Try primary fallback endpoint first, then the alternative; use retries and timeouts
+          const tryFetchUrl = async (url: string) => {
+            return await retryFetch(url, { method: 'POST', headers: commonHeaders, body: bodyPayload }, 2, 700);
           };
 
           let resp: Response | null = null;
           try {
-            resp = await tryFetch(fnUrl1);
+            resp = await tryFetchUrl(fnUrl1);
           } catch (err1) {
             console.warn('Fetch to fnUrl1 failed, trying fnUrl2', err1);
             try {
-              resp = await tryFetch(fnUrl2);
+              resp = await tryFetchUrl(fnUrl2);
             } catch (err2) {
               console.error('Both fallback fetch attempts failed', err1, err2);
               throw err2 || err1;
             }
           }
 
-          if (resp.ok) {
+          if (resp && resp.ok) {
             const json = await resp.json().catch(() => null);
             success = Boolean(json?.success);
             if (!success) {
               finalError = new Error('Edge Function returned unsuccessful response');
             }
-          } else {
+          } else if (resp) {
             const text = await resp.text().catch(() => '');
             finalError = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
+          } else {
+            finalError = new Error('No response from Edge Function');
           }
         } catch (fallbackErr: any) {
           console.error('Fallback fetch error:', fallbackErr);
