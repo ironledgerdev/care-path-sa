@@ -31,6 +31,7 @@ const AdminMashauPermits: React.FC = () => {
   useEffect(() => {
     // Auto-authenticate if a signed-in admin visits this page
     if (isSignedInAdmin && !authenticated) {
+      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
       setAuthenticated(true);
       setError(null);
     }
@@ -116,13 +117,13 @@ const AdminMashauPermits: React.FC = () => {
     setPassword('');
   };
 
-  // When not authenticated by any method, show password form
+  // When not authenticated by any method, show password form with an option to sign in instead
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-full max-w-md p-6 bg-white rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4">Admin Access (Mashau Permits)</h2>
-          <p className="text-sm text-muted-foreground mb-4">Enter the admin access password to continue.</p>
+          <p className="text-sm text-muted-foreground mb-4">Enter the admin access password to continue, or sign in with your admin account.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -137,9 +138,13 @@ const AdminMashauPermits: React.FC = () => {
 
             {error && <div className="text-sm text-red-600">{error}</div>}
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-2">
               <Button className="btn-medical-primary" onClick={handleSubmit}>
                 Unlock Admin Panel
+              </Button>
+
+              <Button variant="outline" className="btn-medical-secondary" onClick={() => window.dispatchEvent(new Event('openAuthModal'))}>
+                Sign In
               </Button>
             </div>
 
