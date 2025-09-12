@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminDashboardContent } from './AdminDashboard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const SESSION_KEY = 'admin_mashau_authenticated';
 
 const AdminMashauPermits: React.FC = () => {
+  const { user, profile } = useAuth();
+  const ADMIN_EMAIL = (import.meta as any).env?.VITE_ADMIN_EMAIL as string | undefined;
+
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState<boolean>(() => {
     try {
@@ -16,6 +20,21 @@ const AdminMashauPermits: React.FC = () => {
     }
   });
   const [error, setError] = useState<string | null>(null);
+
+  // Consider a user as admin if their profile role is admin or their email matches the configured admin email
+  const isSignedInAdmin = useMemo(() => {
+    if (profile?.role === 'admin') return true;
+    if (user?.email && ADMIN_EMAIL && user.email === ADMIN_EMAIL) return true;
+    return false;
+  }, [user?.email, profile?.role, ADMIN_EMAIL]);
+
+  useEffect(() => {
+    // Auto-authenticate if a signed-in admin visits this page
+    if (isSignedInAdmin && !authenticated) {
+      setAuthenticated(true);
+      setError(null);
+    }
+  }, [isSignedInAdmin, authenticated]);
 
   useEffect(() => {
     // Clear error when password changes
@@ -29,7 +48,6 @@ const AdminMashauPermits: React.FC = () => {
     if (invite && !authenticated) {
       (async () => {
         try {
-          // Use Supabase Functions SDK via the client so auth/apikey & url are handled
           const result = await supabase.functions.invoke('verify-admin-invite', {
             body: { token: invite }
           });
@@ -98,6 +116,7 @@ const AdminMashauPermits: React.FC = () => {
     setPassword('');
   };
 
+  // When not authenticated by any method, show password form
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -131,21 +150,24 @@ const AdminMashauPermits: React.FC = () => {
     );
   }
 
-  // Provide a minimal admin profile override for actions performed in the panel
-  const overrideProfile = {
-    id: 'mashau-admin',
-    role: 'admin',
-    email: import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com',
-    first_name: 'Mashau',
-    last_name: 'Admin'
-  };
+  // If authenticated via password/invite and not signed-in admin, provide a minimal admin profile for dashboard
+  const shouldBypassAuth = !isSignedInAdmin;
+  const overrideProfile = shouldBypassAuth
+    ? {
+        id: 'mashau-admin',
+        role: 'admin',
+        email: ADMIN_EMAIL || 'admin@example.com',
+        first_name: 'Mashau',
+        last_name: 'Admin'
+      }
+    : undefined;
 
   return (
     <div>
       <div className="flex justify-end p-4">
         <Button variant="ghost" onClick={handleLogout}>Logout</Button>
       </div>
-      <AdminDashboardContent overrideProfile={overrideProfile} bypassAuth={true} />
+      <AdminDashboardContent overrideProfile={overrideProfile} bypassAuth={shouldBypassAuth} />
     </div>
   );
 };
