@@ -67,7 +67,7 @@ const BookAppointment = () => {
       try {
         const dateObj = new Date(selectedDate);
         const jsDay = dateObj.getDay();
-        const dayOfWeek = jsDay === 0 ? 7 : jsDay; // 1=Mon ... 7=Sun
+        const dayOfWeek = jsDay; // 0=Sun ... 6=Sat
 
         const { data: schedules, error: scheduleError } = await supabase
           .from('doctor_schedules')
