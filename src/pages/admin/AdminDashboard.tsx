@@ -309,7 +309,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
           table: 'doctors'
         },
         () => {
-          fetchDashboardStats();
+          fetchAdminData();
           toast({
             title: "Doctor Approved",
             description: "A doctor has been approved and added to the platform.",
