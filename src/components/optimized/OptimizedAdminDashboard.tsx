@@ -177,6 +177,7 @@ const OptimizedAdminDashboardContent = memo(() => {
   }, [isLocalAdmin]);
 
   const fetchPendingDoctors = useCallback(async () => {
+    if (isLocalAdmin) return; // avoid RLS-restricted queries under local admin session
     try {
       const { data: pendingData, error: pendingError } = await supabase
         .from('doctors')
@@ -205,13 +206,15 @@ const OptimizedAdminDashboardContent = memo(() => {
 
       setPendingDoctors(enrichedData);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch pending applications",
-        variant: "destructive",
-      });
+      if (!isLocalAdmin) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch pending applications",
+          variant: "destructive",
+        });
+      }
     }
-  }, [toast]);
+  }, [toast, isLocalAdmin]);
 
   const handleApproveDoctor = useCallback(async (doctorId: string) => {
     setIsLoading(true);
