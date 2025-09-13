@@ -319,25 +319,33 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
   const fetchPendingDoctors = async () => {
     try {
-      // First get pending doctors from doctors table (awaiting approval)
+      // Try edge function first (bypasses RLS). Fallback to client queries.
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-data');
+        if (error) throw error;
+        const payload = data as any;
+        if (payload?.pending) setPendingDoctors(payload.pending);
+        if (payload?.approved) setApprovedDoctors(payload.approved);
+        if (payload?.stats) setStats(payload.stats);
+        if (payload?.memberships) setUserMemberships(payload.memberships);
+        setDebugInfo(prev => ({ ...prev, pending: payload.pending }));
+        return;
+      } catch (_e) {}
+
       const { data: pendingData, error: pendingError } = await supabase
         .from('doctors')
         .select('*')
         .is('approved_at', null)
         .order('created_at', { ascending: false });
-
       if (pendingError) throw pendingError;
 
-      // Get profiles for these doctors
       const userIds = pendingData?.map(d => d.user_id) || [];
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email')
         .in('id', userIds);
-
       if (profilesError) throw profilesError;
 
-      // Combine the data
       const enrichedData = pendingData?.map(doctor => {
         const profile = profilesData?.find(p => p.id === doctor.user_id);
         return {
@@ -348,19 +356,10 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       }) || [];
 
       setPendingDoctors(enrichedData);
-      // Save raw debug info
-      setDebugInfo(prev => ({
-        ...prev,
-        pending: { pendingData, profilesData, enrichedData }
-      }));
+      setDebugInfo(prev => ({ ...prev, pending: { pendingData, profilesData, enrichedData } }));
     } catch (error: any) {
-      // Record error for debugging
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
-      toast({
-        title: "Error",
-        description: "Failed to fetch pending applications",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to fetch pending applications", variant: "destructive" });
     }
   };
 
