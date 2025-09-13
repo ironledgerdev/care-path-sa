@@ -114,8 +114,8 @@ const DoctorDashboard = () => {
         };
       });
       setScheduleForm(base);
-    } catch (e) {
-      console.error('Failed to load schedule', e);
+    } catch (e: any) {
+      console.error('Failed to load schedule', e?.message || e);
     }
   };
 
