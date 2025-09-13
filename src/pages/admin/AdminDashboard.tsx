@@ -559,8 +559,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         description: 'Doctor approved successfully!',
       });
 
-      fetchPendingDoctors();
-      fetchDashboardStats();
+      fetchAdminData();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -588,8 +587,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         description: "The doctor application has been rejected.",
       });
 
-      fetchPendingDoctors();
-      fetchDashboardStats();
+      fetchAdminData();
     } catch (error: any) {
       toast({
         title: "Error",
