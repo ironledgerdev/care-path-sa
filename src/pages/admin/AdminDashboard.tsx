@@ -192,13 +192,13 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const setupRealtimeSubscriptions = () => {
     // Listen for new doctor entries/updates
     const pendingDoctorsChannel = supabase
-      .channel('doctors_changes')
+      .channel('pending_doctors_changes')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'doctors'
+          table: 'pending_doctors'
         },
         () => {
           fetchPendingDoctors();
@@ -214,7 +214,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'doctors'
+          table: 'pending_doctors'
         },
         () => {
           fetchPendingDoctors();
