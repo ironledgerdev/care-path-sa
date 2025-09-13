@@ -151,6 +151,7 @@ const OptimizedAdminDashboardContent = memo(() => {
   ], [stats]);
 
   const fetchData = useCallback(async () => {
+    if (isLocalAdmin) return; // avoid RLS-restricted queries under local admin session
     try {
       const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
@@ -173,7 +174,7 @@ const OptimizedAdminDashboardContent = memo(() => {
     } catch (error: any) {
       console.error('Failed to fetch dashboard stats:', error);
     }
-  }, []);
+  }, [isLocalAdmin]);
 
   const fetchPendingDoctors = useCallback(async () => {
     try {
