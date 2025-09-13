@@ -1,4 +1,4 @@
-project_id = "irvwoushpskgonjwwmap"
+project_id = "ualtuoghgruwxefqynfg"
 
 [functions.create-payfast-payment]
 verify_jwt = true
@@ -7,4 +7,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-email]
+verify_jwt = false
+
+[functions.admin-data]
 verify_jwt = false
