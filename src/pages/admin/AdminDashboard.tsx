@@ -90,6 +90,29 @@ interface UserMembership {
   } | null;
 }
 
+interface ApprovedDoctor {
+  id: string;
+  user_id: string;
+  practice_name: string;
+  speciality: string;
+  qualification: string;
+  license_number: string;
+  years_experience: number | null;
+  consultation_fee: number;
+  address: string;
+  city: string;
+  province: string;
+  postal_code: string;
+  bio: string | null;
+  approved_at: string | null;
+  created_at: string;
+  profiles: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+}
+
 export const AdminDashboard: React.FC = () => {
   return (
     <AdminGuard>
