@@ -28,9 +28,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
-
-  const { signIn } = useAuth();
+  const { refreshProfile, signIn, profile } = useAuth();
 
   const handleSignIn = async () => {
     setIsLoading(true);
