@@ -141,7 +141,12 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
     } catch (error: any) {
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
-      toast({ title: 'Error', description: 'Failed to fetch admin data', variant: 'destructive' });
+      // Fallback: fetch data directly when the edge function is unavailable or JWT is missing (e.g., local admin session)
+      await Promise.allSettled([
+        fetchPendingDoctors(),
+        fetchUserMemberships(),
+        fetchDashboardStats(),
+      ]);
     } finally {
       setIsLoading(false);
     }
