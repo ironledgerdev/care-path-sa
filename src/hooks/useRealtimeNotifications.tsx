@@ -158,7 +158,7 @@ export const useRealtimeNotifications = () => {
       const { data: doctor, error } = await supabase
         .from('doctors')
         .select('id')
-        .eq('user_id', user?.id)
+        .limit(1)
         .maybeSingle();
 
       if (error || !doctor) return;
