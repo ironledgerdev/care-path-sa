@@ -33,16 +33,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Try to get existing profile without throwing on 0 rows
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+
+      if (!data) {
+        // Create a minimal profile if missing (first sign-in) and RLS allows it
+        const { data: authUser } = await supabase.auth.getUser();
+        const email = authUser?.user?.email || '';
+        const now = new Date().toISOString();
+        const { data: inserted, error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: userId, email, role: 'patient', created_at: now, updated_at: now })
+          .select('*')
+          .single();
+        if (insertError) throw insertError;
+        setProfile(inserted);
+        return;
+      }
+
       setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (error: any) {
+      console.error('Error fetching profile:', error?.message || JSON.stringify(error));
       setProfile(null);
     }
   };
