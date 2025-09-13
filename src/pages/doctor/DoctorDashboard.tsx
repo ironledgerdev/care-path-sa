@@ -366,7 +366,7 @@ const DoctorDashboard = () => {
                   {scheduleForm.map((row: any, idx: number) => (
                     <div key={idx} className="grid grid-cols-12 items-center gap-3">
                       <div className="col-span-4 text-sm font-medium text-muted-foreground">
-                        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][row.day_of_week]}
+                        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][row.day_of_week]}
                       </div>
                       <div className="col-span-2">
                         <input type="time" className="border rounded px-2 py-1 w-full" value={row.start_time}
