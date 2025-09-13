@@ -53,13 +53,13 @@ const MembershipManagement = () => {
         .from('memberships')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      setMembership(data);
+      setMembership(data as any);
     } catch (error: any) {
       toast({
         title: "Error",
