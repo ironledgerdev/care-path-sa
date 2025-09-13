@@ -45,7 +45,7 @@ const DoctorDashboard = () => {
       const { data, error } = await supabase
         .from('doctors')
         .select('*')
-        .eq('user_id', user?.id)
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
