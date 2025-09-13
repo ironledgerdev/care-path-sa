@@ -169,9 +169,9 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       // Fallback: fetch data directly when the edge function is unavailable or JWT is missing (e.g., local admin session)
       await Promise.allSettled([
         fetchPendingDoctors(),
-        fetchUserMemberships(),
         fetchDashboardStats(),
       ]);
+      // Memberships require the admin-data function; skip in fallback to avoid RLS errors.
     } finally {
       setIsLoading(false);
     }
