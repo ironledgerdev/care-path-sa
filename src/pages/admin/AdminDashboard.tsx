@@ -580,11 +580,25 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   };
 
   const handleImpersonate = async () => {
-    // Implementation for user impersonation
-    toast({
-      title: "Impersonation",
-      description: "Feature coming soon",
-    });
+    if (!impersonateEmail) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('impersonate-user', {
+        body: {
+          email: impersonateEmail,
+          redirectTo: `${window.location.origin}/dashboard?impersonated=1`
+        }
+      });
+      if (error || !data?.action_link) throw new Error(error?.message || 'Failed to generate impersonation link');
+
+      // Open secure magic link in new tab
+      window.open(data.action_link, '_blank', 'noopener');
+      toast({ title: 'Impersonation Link', description: 'Opened a secure login link in a new tab.' });
+    } catch (e: any) {
+      toast({ title: 'Impersonation Failed', description: e.message || 'Unable to impersonate user', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Show loading state while profile is being fetched
