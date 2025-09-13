@@ -339,7 +339,12 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         .order('created_at', { ascending: false });
       if (pendingError) throw pendingError;
 
-      const userIds = pendingData?.map(d => d.user_id) || [];
+      const userIds = pendingData?.map(d => d.user_id).filter(Boolean) || [];
+      if (userIds.length === 0) {
+        setPendingDoctors([]);
+        setDebugInfo(prev => ({ ...prev, pending: { pendingData, profilesData: [], enrichedData: [] } }));
+        return;
+      }
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email')
