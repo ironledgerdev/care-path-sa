@@ -102,6 +102,7 @@ const OptimizedAdminDashboardContent = memo(() => {
   const [pendingDoctors, setPendingDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const { profile } = useAuth();
+  const isLocalAdmin = profile?.id === 'local-admin';
   const { toast } = useToast();
 
   // Memoized stats cards configuration
