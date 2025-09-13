@@ -251,7 +251,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
           table: 'bookings'
         },
         () => {
-          fetchDashboardStats();
+          fetchAdminData();
           toast({
             title: "New Booking",
             description: "A new appointment has been booked.",
