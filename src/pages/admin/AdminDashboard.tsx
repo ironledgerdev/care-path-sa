@@ -211,7 +211,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const setupRealtimeSubscriptions = () => {
     // Listen for new doctor entries/updates
     const pendingDoctorsChannel = supabase
-      .channel('doctors_changes')
+      .channel('doctors_changes_pending')
       .on(
         'postgres_changes',
         {
