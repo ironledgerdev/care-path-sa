@@ -33,16 +33,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Try to fetch profile; do not error if not found
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+      if (error && (error as any)?.code !== 'PGRST116') throw error;
+
+      if (!data) {
+        // Attempt to create a minimal profile from auth metadata; ignore failures
+        const authUser = (await supabase.auth.getUser()).data.user;
+        const first_name = (authUser?.user_metadata as any)?.first_name || '';
+        const last_name = (authUser?.user_metadata as any)?.last_name || '';
+        const email = authUser?.email || '';
+        const role = (authUser?.user_metadata as any)?.role || 'patient';
+        try {
+          await supabase.from('profiles').upsert({
+            id: userId,
+            email,
+            first_name,
+            last_name,
+            role,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
+          const { data: fetched } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+          setProfile((fetched as any) || {
+            id: userId,
+            email,
+            first_name,
+            last_name,
+            role,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          // Fall back to lightweight profile to keep app usable
+          setProfile({
+            id: userId,
+            email: authUser?.email || '',
+            first_name: (authUser?.user_metadata as any)?.first_name || '',
+            last_name: (authUser?.user_metadata as any)?.last_name || '',
+            role: (authUser?.user_metadata as any)?.role || 'patient',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any);
+        }
+        return;
+      }
+
+      setProfile(data as any);
+    } catch (error: any) {
+      console.error('Error fetching profile:', error?.message || JSON.stringify(error));
       setProfile(null);
     }
   };
