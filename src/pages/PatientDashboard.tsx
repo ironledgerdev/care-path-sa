@@ -67,9 +67,24 @@ const PatientDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Realtime list of available doctors for quick booking
+  const [availableDoctors, setAvailableDoctors] = useState<Array<{ id: string; consultation_fee: number; speciality: string; practice_name: string; profiles: { first_name: string | null; last_name: string | null } | null }>>([]);
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchAvailableDoctors();
+
+      const channel = supabase
+        .channel('doctors_changes_dashboard')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, () => {
+          fetchAvailableDoctors();
+        })
+        .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     }
   }, [user]);
 
