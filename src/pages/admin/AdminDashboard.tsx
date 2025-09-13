@@ -121,6 +121,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const [impersonateEmail, setImpersonateEmail] = useState('');
   const auth = useAuth();
   const profile = overrideProfile ?? auth.profile;
+  const isLocalAdmin = profile?.id === 'local-admin';
   const { toast } = useToast();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -141,12 +142,17 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
     } catch (error: any) {
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
-      // Fallback: fetch data directly when the edge function is unavailable or JWT is missing (e.g., local admin session)
-      await Promise.allSettled([
-        fetchPendingDoctors(),
-        fetchUserMemberships(),
-        fetchDashboardStats(),
-      ]);
+      // If running under local admin session, avoid direct DB calls that will fail under RLS
+      if (!isLocalAdmin) {
+        await Promise.allSettled([
+          fetchPendingDoctors(),
+          fetchUserMemberships(),
+          fetchDashboardStats(),
+        ]);
+      } else {
+        setPendingDoctors([]);
+        setUserMemberships([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -335,11 +341,13 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
     } catch (error: any) {
       // Record error for debugging
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
-      toast({
-        title: "Error",
-        description: "Failed to fetch pending applications",
-        variant: "destructive",
-      });
+      if (!isLocalAdmin) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch pending applications",
+          variant: "destructive",
+        });
+      }
     }
   };
 
