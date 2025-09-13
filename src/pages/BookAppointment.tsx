@@ -115,6 +115,27 @@ const BookAppointment = () => {
       }
     };
     loadAvailability();
+    // Realtime subscriptions for schedule and bookings affecting availability
+    if (doctorId && selectedDate) {
+      const dateObj = new Date(selectedDate);
+      const jsDay = dateObj.getDay();
+      const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+
+      const schedulesChannel = supabase
+        .channel(`sched-${doctorId}-${dayOfWeek}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctor_schedules', filter: `doctor_id=eq.${doctorId}` }, () => loadAvailability())
+        .subscribe();
+
+      const bookingsChannel = supabase
+        .channel(`bookings-${doctorId}-${selectedDate}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `doctor_id=eq.${doctorId}` }, () => loadAvailability())
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(schedulesChannel);
+        supabase.removeChannel(bookingsChannel);
+      };
+    }
   }, [doctorId, selectedDate]);
 
   const fetchDoctor = async () => {
