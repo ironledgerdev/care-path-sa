@@ -271,8 +271,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
           table: 'profiles'
         },
         () => {
-          fetchDashboardStats();
-          fetchUserMemberships();
+          fetchAdminData();
           toast({
             title: "New User",
             description: "A new user has registered.",
