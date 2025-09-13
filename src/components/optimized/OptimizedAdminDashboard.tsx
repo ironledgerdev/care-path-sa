@@ -288,7 +288,7 @@ const OptimizedAdminDashboardContent = memo(() => {
   }, [fetchData, fetchPendingDoctors, toast]);
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (profile?.role === 'admin' && profile?.id !== 'local-admin') {
       fetchData();
       fetchPendingDoctors();
     }
