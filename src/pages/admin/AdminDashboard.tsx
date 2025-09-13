@@ -683,6 +683,40 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
             />
           </TabsContent>
 
+          <TabsContent value="approved">
+            <Card className="medical-hero-card">
+              <CardHeader>
+                <CardTitle>Approved Doctors</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Practice</TableHead>
+                      <TableHead>Specialty</TableHead>
+                      <TableHead>Approved At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedDoctors.map((doctor) => (
+                      <TableRow key={doctor.id}>
+                        <TableCell className="font-medium">
+                          {doctor.profiles?.first_name} {doctor.profiles?.last_name}
+                        </TableCell>
+                        <TableCell>{doctor.profiles?.email}</TableCell>
+                        <TableCell>{doctor.practice_name}</TableCell>
+                        <TableCell>{doctor.speciality}</TableCell>
+                        <TableCell>{doctor.approved_at ? new Date(doctor.approved_at).toLocaleString() : '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="memberships">
             <Card className="medical-hero-card">
               <CardHeader>
