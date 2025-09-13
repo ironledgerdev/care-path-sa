@@ -298,7 +298,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
     // Listen for doctor approvals/changes
     const doctorsChannel = supabase
-      .channel('doctors_changes')
+      .channel('doctors_changes_approved')
       .on(
         'postgres_changes',
         {
