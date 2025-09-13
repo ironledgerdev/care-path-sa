@@ -155,7 +155,7 @@ const OptimizedAdminDashboardContent = memo(() => {
     try {
       const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
         supabase.from('doctors').select('id', { count: 'exact' }),
-        supabase.from('doctors').select('id', { count: 'exact' }).is('approved_at', null),
+        supabase.from('pending_doctors').select('id', { count: 'exact' }),
         supabase.from('bookings').select('total_amount', { count: 'exact' }),
         supabase.from('profiles').select('id', { count: 'exact' }),
         supabase.from('memberships').select('id', { count: 'exact' }).eq('membership_type', 'premium').eq('is_active', true)
@@ -180,9 +180,8 @@ const OptimizedAdminDashboardContent = memo(() => {
     if (isLocalAdmin) return; // avoid RLS-restricted queries under local admin session
     try {
       const { data: pendingData, error: pendingError } = await supabase
-        .from('doctors')
+        .from('pending_doctors')
         .select('*')
-        .is('approved_at', null)
         .order('created_at', { ascending: false });
 
       if (pendingError) throw pendingError;
@@ -216,29 +215,22 @@ const OptimizedAdminDashboardContent = memo(() => {
     }
   }, [toast, isLocalAdmin]);
 
-  const handleApproveDoctor = useCallback(async (doctorId: string) => {
+  const handleApproveDoctor = useCallback(async (pendingId: string) => {
     setIsLoading(true);
     try {
       const { data: pendingDoctor, error: fetchError } = await supabase
-        .from('doctors')
+        .from('pending_doctors')
         .select('*')
-        .eq('id', doctorId)
-        .is('approved_at', null)
+        .eq('id', pendingId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const { error: updateDoctorError } = await supabase
-        .from('doctors')
-        .update({
-          is_available: true,
-          approved_at: new Date().toISOString(),
-          approved_by: profile?.id || null,
-        })
-        .eq('id', doctorId)
-        .is('approved_at', null);
-
-      if (updateDoctorError) throw updateDoctorError;
+      const { error: approveError } = await supabase.rpc('approve_pending_doctor', {
+        p_pending_id: pendingId,
+        p_approved_by: profile?.id || null,
+      });
+      if (approveError) throw approveError;
 
       toast({
         title: "Success",
@@ -258,14 +250,13 @@ const OptimizedAdminDashboardContent = memo(() => {
     }
   }, [fetchData, fetchPendingDoctors, toast]);
 
-  const handleRejectDoctor = useCallback(async (doctorId: string) => {
+  const handleRejectDoctor = useCallback(async (pendingId: string) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('doctors')
+        .from('pending_doctors')
         .delete()
-        .eq('id', doctorId)
-        .is('approved_at', null);
+        .eq('id', pendingId);
 
       if (error) throw error;
 
