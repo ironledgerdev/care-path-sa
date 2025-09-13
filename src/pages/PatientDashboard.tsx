@@ -67,9 +67,24 @@ const PatientDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Realtime list of available doctors for quick booking
+  const [availableDoctors, setAvailableDoctors] = useState<Array<{ id: string; consultation_fee: number; speciality: string; practice_name: string; profiles: { first_name: string | null; last_name: string | null } | null }>>([]);
+
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchAvailableDoctors();
+
+      const channel = supabase
+        .channel('doctors_changes_dashboard')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, () => {
+          fetchAvailableDoctors();
+        })
+        .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     }
   }, [user]);
 
@@ -168,6 +183,21 @@ const PatientDashboard = () => {
         return <Badge className="bg-primary text-primary-foreground">Completed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const fetchAvailableDoctors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select(`id, consultation_fee, speciality, practice_name, profiles:user_id(first_name,last_name)`)
+        .eq('is_available', true)
+        .order('rating', { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      setAvailableDoctors((data as any) || []);
+    } catch (e) {
+      // silent; dashboard still loads
     }
   };
 
@@ -272,12 +302,12 @@ const PatientDashboard = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Bookings */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card className="medical-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl text-medical-gradient">Recent Bookings</CardTitle>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => navigate('/bookings')}
                   className="text-primary hover:bg-primary/10"
@@ -294,7 +324,7 @@ const PatientDashboard = () => {
                     <p className="text-muted-foreground mb-4">
                       Book your first appointment to get started
                     </p>
-                    <Button 
+                    <Button
                       className="btn-medical-primary"
                       onClick={() => navigate('/search')}
                     >
@@ -321,6 +351,34 @@ const PatientDashboard = () => {
                       <div className="text-right">
                         {getStatusBadge(booking.status)}
                       </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Available Doctors (Realtime) */}
+            <Card className="medical-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl text-medical-gradient">Available Doctors</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/search')} className="text-primary hover:bg-primary/10">
+                  View All
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                {availableDoctors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No doctors available right now.</p>
+                ) : (
+                  availableDoctors.map((d) => (
+                    <div key={d.id} className="p-4 bg-muted/30 rounded-lg flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Dr. {d.profiles?.first_name} {d.profiles?.last_name}</h4>
+                        <p className="text-xs text-muted-foreground">{d.speciality} • {d.practice_name}</p>
+                      </div>
+                      <Button size="sm" className="btn-medical-primary" onClick={() => navigate(`/book/${d.id}`)}>
+                        Book
+                      </Button>
                     </div>
                   ))
                 )}

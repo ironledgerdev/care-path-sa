@@ -187,6 +187,17 @@ const OptimizedDoctorSearch = memo(() => {
 
   useEffect(() => {
     fetchDoctors();
+
+    const channel = supabase
+      .channel('doctors_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, () => {
+        fetchDoctors();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Initialize filters from URL params
