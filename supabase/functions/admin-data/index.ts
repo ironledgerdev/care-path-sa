@@ -29,20 +29,34 @@ Deno.serve(async (req) => {
       .is('approved_at', null)
       .order('created_at', { ascending: false });
 
-    // Fetch profiles for pending (to enrich)
+    // Fetch approved doctors (approved_at is not null)
+    const approvedResp = await supabaseAdmin
+      .from('doctors')
+      .select('*')
+      .not('approved_at', 'is', null)
+      .order('approved_at', { ascending: false });
+
+    // Enrich with profiles
     let pending = pendingResp.data || [];
-    const userIds = pending.map((d: any) => d.user_id).filter(Boolean);
-    let profilesData = [];
-    if (userIds.length) {
+    let approved = approvedResp.data || [];
+    const userIds = [
+      ...pending.map((d: any) => d.user_id).filter(Boolean),
+      ...approved.map((d: any) => d.user_id).filter(Boolean)
+    ];
+    const uniqueIds = Array.from(new Set(userIds));
+    let profilesData: any[] = [];
+    if (uniqueIds.length) {
       const profilesResp = await supabaseAdmin
         .from('profiles')
         .select('id, first_name, last_name, email')
-        .in('id', userIds);
+        .in('id', uniqueIds);
       profilesData = profilesResp.data || [];
-      pending = pending.map((doc: any) => ({
+      const attach = (doc: any) => ({
         ...doc,
         profiles: profilesData.find((p: any) => p.id === doc.user_id) || { first_name: '', last_name: '', email: '' }
-      }));
+      });
+      pending = pending.map(attach);
+      approved = approved.map(attach);
     }
 
     // Memberships (with profile relation if exists)
@@ -74,7 +88,7 @@ Deno.serve(async (req) => {
       premiumMembers: premiumResult.count || 0
     };
 
-    return new Response(JSON.stringify({ success: true, pending, memberships, stats }), {
+    return new Response(JSON.stringify({ success: true, pending, approved, memberships, stats }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
