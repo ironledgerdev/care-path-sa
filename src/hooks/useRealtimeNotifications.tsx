@@ -159,9 +159,9 @@ export const useRealtimeNotifications = () => {
         .from('doctors')
         .select('id')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (error) return;
+      if (error || !doctor) return;
 
       if (doctor && booking.doctor_id === doctor.id) {
         addNotification({

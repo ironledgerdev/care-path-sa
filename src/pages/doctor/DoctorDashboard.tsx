@@ -46,12 +46,15 @@ const DoctorDashboard = () => {
         .from('doctors')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setDoctorInfo(data);
-    } catch (error) {
-      console.error('Error fetching doctor info:', error);
+      if (!data) {
+        console.warn('No doctor record found for current user.');
+      }
+    } catch (error: any) {
+      console.error('Error fetching doctor info:', error?.message || error);
     }
   };
 
