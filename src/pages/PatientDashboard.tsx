@@ -126,7 +126,7 @@ const PatientDashboard = () => {
         .from('memberships')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (membershipError && membershipError.code !== 'PGRST116') {
         throw membershipError;
