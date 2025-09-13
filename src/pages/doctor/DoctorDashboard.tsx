@@ -150,7 +150,7 @@ const DoctorDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select('id, user_id, appointment_date, appointment_time, status, patient_notes')
+        .select('id, user_id, appointment_date, appointment_time, status')
         .eq('doctor_id', doctorInfo.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
