@@ -302,12 +302,12 @@ const PatientDashboard = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Bookings */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card className="medical-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl text-medical-gradient">Recent Bookings</CardTitle>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => navigate('/bookings')}
                   className="text-primary hover:bg-primary/10"
@@ -324,7 +324,7 @@ const PatientDashboard = () => {
                     <p className="text-muted-foreground mb-4">
                       Book your first appointment to get started
                     </p>
-                    <Button 
+                    <Button
                       className="btn-medical-primary"
                       onClick={() => navigate('/search')}
                     >
@@ -351,6 +351,34 @@ const PatientDashboard = () => {
                       <div className="text-right">
                         {getStatusBadge(booking.status)}
                       </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Available Doctors (Realtime) */}
+            <Card className="medical-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl text-medical-gradient">Available Doctors</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/search')} className="text-primary hover:bg-primary/10">
+                  View All
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                {availableDoctors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No doctors available right now.</p>
+                ) : (
+                  availableDoctors.map((d) => (
+                    <div key={d.id} className="p-4 bg-muted/30 rounded-lg flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Dr. {d.profiles?.first_name} {d.profiles?.last_name}</h4>
+                        <p className="text-xs text-muted-foreground">{d.speciality} • {d.practice_name}</p>
+                      </div>
+                      <Button size="sm" className="btn-medical-primary" onClick={() => navigate(`/book/${d.id}`)}>
+                        Book
+                      </Button>
                     </div>
                   ))
                 )}
