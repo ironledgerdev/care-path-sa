@@ -220,8 +220,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
           table: 'doctors'
         },
         () => {
-          fetchPendingDoctors();
-          fetchDashboardStats();
+          fetchAdminData();
           toast({
             title: "New Application",
             description: "A new doctor application has been submitted.",
