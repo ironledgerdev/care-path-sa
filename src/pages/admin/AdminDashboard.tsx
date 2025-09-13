@@ -159,6 +159,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       if (error) throw error;
       const payload = data as any;
       if (payload?.pending) setPendingDoctors(payload.pending);
+      if (payload?.approved) setApprovedDoctors(payload.approved);
       if (payload?.memberships) setUserMemberships(payload.memberships);
       if (payload?.stats) setStats(payload.stats);
 
