@@ -663,8 +663,9 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
 
         {/* Main Tabs */}
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="pending">Pending ({stats.pendingApplications})</TabsTrigger>
+            <TabsTrigger value="approved">Approved ({stats.totalDoctors})</TabsTrigger>
             <TabsTrigger value="memberships">Memberships</TabsTrigger>
             <TabsTrigger value="create-user">Create User</TabsTrigger>
             <TabsTrigger value="impersonate">Impersonate</TabsTrigger>
