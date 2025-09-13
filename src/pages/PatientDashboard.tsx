@@ -186,6 +186,21 @@ const PatientDashboard = () => {
     }
   };
 
+  const fetchAvailableDoctors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select(`id, consultation_fee, speciality, practice_name, profiles:user_id(first_name,last_name)`)
+        .eq('is_available', true)
+        .order('rating', { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      setAvailableDoctors((data as any) || []);
+    } catch (e) {
+      // silent; dashboard still loads
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
