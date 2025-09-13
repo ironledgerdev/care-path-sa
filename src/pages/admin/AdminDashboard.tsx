@@ -291,8 +291,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
           table: 'memberships'
         },
         () => {
-          fetchDashboardStats();
-          fetchUserMemberships();
+          fetchAdminData();
         }
       )
       .subscribe();
