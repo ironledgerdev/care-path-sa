@@ -1,8 +1,13 @@
 import { createRoot } from 'react-dom/client'
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import './utils/patchResizeObserver';
 import './utils/suppressResizeObserverError';
 import './integrations/sentry';
-import App from './App.tsx'
-import './index.css'
+import App from './App.tsx';
+import './index.css';
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  createRoot(rootEl).render(<App />);
+}
