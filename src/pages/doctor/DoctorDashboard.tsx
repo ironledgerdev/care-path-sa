@@ -143,7 +143,10 @@ const DoctorDashboard = () => {
   };
 
   const saveSchedule = async () => {
-    if (!doctorInfo?.id) return;
+    if (!doctorInfo?.id) {
+      toast({ title: 'No doctor profile found', description: 'Complete enrollment or wait for approval to manage your schedule.', variant: 'destructive' });
+      return;
+    }
     setSavingSchedule(true);
     try {
       await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorInfo.id);
@@ -170,7 +173,7 @@ const DoctorDashboard = () => {
         const { error } = await supabase.from('doctor_schedules').insert(rows);
         if (error) throw error;
       }
-      toast({ title: 'Schedule saved', description: 'Your availability has been updated.' });
+      toast({ title: 'Schedule is live', description: 'Patients can now book the selected times in real time.' });
       await loadSchedule();
     } catch (e: any) {
       console.error('Failed to save schedule', e?.message || e);
