@@ -96,6 +96,23 @@ const DoctorSearch = () => {
 
   useEffect(() => {
     fetchDoctors();
+
+    // Subscribe to realtime changes in doctors table
+    const channel = supabase
+      .channel('doctors_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'doctors' },
+        () => {
+          // Refresh list on any insert/update/delete
+          fetchDoctors();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
