@@ -113,15 +113,19 @@ const DoctorSearch = () => {
             last_name
           )
         `)
-        .eq('is_available', true)
         .order('rating', { ascending: false });
+
+      // Note: we intentionally load all doctors so searches return every doctor in the DB
+      // Availability filtering is applied client-side by the UI if needed.
 
       if (error) throw error;
       setDoctors((data || []) as any[]);
     } catch (error: any) {
+      // Log error for debugging and show helpful message to the user
+      console.error('Error fetching doctors:', error);
       toast({
         title: "Error",
-        description: "Failed to load doctors",
+        description: error?.message || "Failed to load doctors",
         variant: "destructive",
       });
     } finally {
