@@ -15,17 +15,20 @@ import {
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
 
   // Listen for auth modal events from other components
   useEffect(() => {
-    const handleOpenAuthModal = () => {
+    const handleOpenAuthModal = (e: any) => {
+      const requestedTab = e?.detail?.tab as 'login' | 'signup' | undefined;
+      setAuthTab(requestedTab || 'login');
       setAuthModalOpen(true);
     };
 
-    window.addEventListener('openAuthModal', handleOpenAuthModal);
-    return () => window.removeEventListener('openAuthModal', handleOpenAuthModal);
+    window.addEventListener('openAuthModal', handleOpenAuthModal as EventListener);
+    return () => window.removeEventListener('openAuthModal', handleOpenAuthModal as EventListener);
   }, []);
 
   const isActive = (path: string) => location.pathname === path;
@@ -137,12 +140,21 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button 
-                className="btn-medical-primary hover:scale-105 transition-transform duration-200"
-                onClick={() => setAuthModalOpen(true)}
-              >
-                Log In
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="btn-medical-secondary hover:scale-105 transition-transform duration-200"
+                  onClick={() => { setAuthTab('signup'); setAuthModalOpen(true); }}
+                >
+                  Sign Up
+                </Button>
+                <Button
+                  className="btn-medical-primary hover:scale-105 transition-transform duration-200"
+                  onClick={() => { setAuthTab('login'); setAuthModalOpen(true); }}
+                >
+                  Log In
+                </Button>
+              </div>
             )}
           </div>
 
@@ -196,12 +208,21 @@ const Header = () => {
                     </Button>
                   </>
                 ) : (
-                  <Button 
-                    className="btn-medical-primary w-full"
-                    onClick={() => setAuthModalOpen(true)}
-                  >
-                    Log In
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="btn-medical-secondary w-full"
+                      onClick={() => { setAuthTab('signup'); setAuthModalOpen(true); }}
+                    >
+                      Sign Up
+                    </Button>
+                    <Button
+                      className="btn-medical-primary w-full"
+                      onClick={() => { setAuthTab('login'); setAuthModalOpen(true); }}
+                    >
+                      Log In
+                    </Button>
+                  </div>
                 )}
               </div>
             </nav>
@@ -209,7 +230,7 @@ const Header = () => {
         )}
       </div>
       
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} initialTab={authTab} />
     </header>
   );
 };
