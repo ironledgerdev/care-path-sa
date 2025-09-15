@@ -9,5 +9,5 @@ import './index.css';
 
 const rootEl = document.getElementById('root');
 if (rootEl) {
-  createRoot(rootEl).render(<App />);
+  createReactRoot(rootEl).render(<App />);
 }
