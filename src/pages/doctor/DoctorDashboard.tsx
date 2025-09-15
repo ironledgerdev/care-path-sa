@@ -55,19 +55,8 @@ const DoctorDashboard = () => {
 
   const fetchDoctorInfo = async () => {
     try {
-      if (!user) return;
-      // Prefer an approved doctor record if multiple exist, otherwise pick most recent
-      const base = supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', user.id);
-
-      // Try approved first
-      const approvedQuery = base
-        .eq('approved_at', null as any) // placeholder to chain correctly; will be removed below
-      // @ts-expect-error chaining helper
-      ;
-      // Build two queries explicitly to avoid shared builders
+      if (!user) return null;
+      // 1) Prefer an approved doctor record if multiple exist
       const { data: approvedList, error: approvedErr } = await supabase
         .from('doctors')
         .select('*')
@@ -76,24 +65,19 @@ const DoctorDashboard = () => {
         .order('approved_at', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1);
-
       if (approvedErr) throw approvedErr;
-
       if (approvedList && approvedList.length > 0) {
         setDoctorInfo(approvedList[0]);
         return approvedList[0];
       }
-
-      // Fallback: any record for user (pick most recent)
+      // 2) Fallback: any record for user (pick most recent)
       const { data: anyList, error: anyErr } = await supabase
         .from('doctors')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
-
       if (anyErr) throw anyErr;
-
       const doc = anyList?.[0] || null;
       setDoctorInfo(doc);
       if (!doc) {
