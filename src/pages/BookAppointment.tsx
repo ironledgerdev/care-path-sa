@@ -319,12 +319,73 @@ const BookAppointment = () => {
 
       window.location.href = paymentUrl;
 
-    } catch (error: any) {
-      toast({
-        title: "Booking Failed",
-        description: error.message || "Failed to create booking",
-        variant: "destructive",
-      });
+    } catch (errAny: any) {
+      // Final fallback: create booking directly to avoid losing the slot if Functions are unreachable
+      try {
+        // Prevent double-booking
+        const { data: conflict } = await supabase
+          .from('bookings')
+          .select('id, status')
+          .eq('doctor_id', doctor!.id)
+          .eq('appointment_date', selectedDate)
+          .eq('appointment_time', selectedTime)
+          .neq('status', 'cancelled');
+        if ((conflict || []).length > 0) {
+          toast({ title: 'Slot Unavailable', description: 'Time slot no longer available', variant: 'destructive' });
+          return;
+        }
+
+        // Membership check
+        const { data: membership } = await supabase
+          .from('memberships')
+          .select('membership_type, free_bookings_remaining')
+          .eq('user_id', user!.id)
+          .single();
+        const baseBookingFee = 1000; // cents
+        let booking_fee = baseBookingFee;
+        let shouldDecrement = false;
+        if (membership?.membership_type === 'premium' && (membership.free_bookings_remaining ?? 0) > 0) {
+          booking_fee = 0;
+          shouldDecrement = true;
+        }
+
+        const { data: inserted, error: insErr } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: user!.id,
+            doctor_id: doctor!.id,
+            appointment_date: selectedDate,
+            appointment_time: selectedTime,
+            patient_notes: `${patientNotes || ''}\nPayment method: ${paymentMethod.replace('_', ' ')}`,
+            consultation_fee: doctor!.consultation_fee,
+            booking_fee,
+            total_amount: booking_fee,
+            status: 'pending',
+            payment_status: 'pending',
+          })
+          .select('*')
+          .single();
+        if (insErr) throw insErr;
+
+        if (shouldDecrement) {
+          await supabase
+            .from('memberships')
+            .update({
+              free_bookings_remaining: (membership!.free_bookings_remaining || 0) - 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user!.id);
+        }
+
+        toast({ title: 'Booking Created', description: 'Payment pending. You can retry payment from Booking History.', variant: 'default' });
+        navigate(`/booking-success?booking_id=${inserted.id}`);
+      } catch (finalErr: any) {
+        toast({
+          title: 'Booking Failed',
+          description: finalErr?.message || errAny?.message || 'Failed to create booking',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsBooking(false);
     }
