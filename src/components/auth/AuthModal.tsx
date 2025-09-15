@@ -95,16 +95,8 @@ export function AuthModal({ isOpen, onClose, initialTab = 'login' }: AuthModalPr
         return;
       }
 
-      const userId = data.user?.id;
-      if (userId) {
-        await supabase.from('profiles').insert({
-          id: userId,
-          email: signupEmail,
-          first_name: firstName || null,
-          last_name: lastName || null,
-          role: 'patient',
-        }).throwOnError();
-      }
+      // Do NOT insert into profiles here; user isn't authenticated yet (RLS blocks anon inserts).
+      // We'll create the profile on first login in useAuth.
 
       toast({ title: 'Check your email', description: 'We sent a verification link to complete your registration.' });
       onClose();
