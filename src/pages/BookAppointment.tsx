@@ -140,20 +140,29 @@ const BookAppointment = () => {
 
   const fetchDoctor = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: doctorData, error } = await supabase
         .from('doctors')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq('id', doctorId)
         .single();
 
       if (error) throw error;
-      setDoctor(data as any);
+
+      let enriched: any = doctorData;
+      if (doctorData?.user_id) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .eq('id', doctorData.user_id)
+            .single();
+          enriched = { ...doctorData, profiles: profile || null };
+        } catch (_) {
+          enriched = { ...doctorData, profiles: null };
+        }
+      }
+
+      setDoctor(enriched as any);
     } catch (error: any) {
       toast({
         title: "Error",
