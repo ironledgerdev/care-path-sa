@@ -121,35 +121,41 @@ const DoctorSearch = () => {
 
   const fetchDoctors = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: doctorsData, error: doctorsError } = await supabase
         .from('doctors')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .order('rating', { ascending: false });
 
-      // Note: we intentionally load all doctors so searches return every doctor in the DB
-      // Availability filtering is applied client-side by the UI if needed.
+      if (doctorsError) throw doctorsError;
 
-      if (error) throw error;
-      setDoctors((data || []) as any[]);
+      let enriched = (doctorsData || []) as any[];
+
+      // Try to enrich with profile names (best-effort; tolerate RLS)
+      const userIds = enriched.map((d: any) => d.user_id).filter(Boolean);
+      if (userIds.length) {
+        try {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+          if (!profilesError && profilesData) {
+            const map = new Map(profilesData.map((p: any) => [p.id, p]));
+            enriched = enriched.map((d: any) => ({ ...d, profiles: map.get(d.user_id) || null }));
+          }
+        } catch (_) {
+          // ignore enrichment failures
+        }
+      }
+
+      setDoctors(enriched as any[]);
     } catch (error: any) {
-      // Robust error extraction
-      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || "Failed to load doctors";
+      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || 'Failed to load doctors';
       try {
         console.error('Error fetching doctors:', error);
-      } catch (e) {
+      } catch (_) {
         console.error('Error fetching doctors (string):', String(error));
       }
-      toast({
-        title: "Error",
-        description: errMsg,
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: errMsg, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
