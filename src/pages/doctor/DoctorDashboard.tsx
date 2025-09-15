@@ -215,22 +215,28 @@ const DoctorDashboard = () => {
       for (let d = 0; d < 7; d++) {
         const state = dayStates[d];
         if (!state) continue;
-        const allSlots = [] as string[];
-        for (let m = toMinutes(state.open); m < toMinutes(state.close); m += 30) allSlots.push(toHHMM(m));
-        allSlots.forEach((t) => {
-          if (state.selected.has(t)) {
-            rows.push({
-              doctor_id: doctorId!,
-              day_of_week: d,
-              start_time: t,
-              end_time: toHHMM(toMinutes(t) + 30),
-              is_available: true,
-            });
-          }
-        });
+        const selectedTimes = Array.from(state.selected.values()).sort();
+        if (selectedTimes.length === 0) {
+          // No availability for this day → skip (no row with is_available=false needed)
+          continue;
+        }
+        const start = selectedTimes[0];
+        const endLast = selectedTimes[selectedTimes.length - 1];
+        const end = toHHMM(toMinutes(endLast) + 30);
+        if (toMinutes(end) > toMinutes(start)) {
+          rows.push({
+            doctor_id: doctorId!,
+            day_of_week: d,
+            start_time: start,
+            end_time: end,
+            is_available: true,
+          });
+        }
       }
       if (rows.length) {
-        const { error } = await supabase.from('doctor_schedules').insert(rows);
+        const { error } = await supabase
+          .from('doctor_schedules')
+          .upsert(rows, { onConflict: 'doctor_id,day_of_week' });
         if (error) throw error;
       }
       toast({ title: 'Schedule is live', description: 'Patients can now book the selected times in real time.' });
