@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot as createReactRoot } from 'react-dom/client';
 import './utils/patchResizeObserver';
 import './utils/suppressResizeObserverError';
 import './integrations/sentry';
