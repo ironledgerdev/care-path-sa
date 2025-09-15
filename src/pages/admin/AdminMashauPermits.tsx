@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminDashboardContent } from './AdminDashboard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const SESSION_KEY = 'admin_mashau_authenticated';
 
 const AdminMashauPermits: React.FC = () => {
+  const { user, profile } = useAuth();
+  const ADMIN_EMAIL = (import.meta as any).env?.VITE_ADMIN_EMAIL as string | undefined;
+
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState<boolean>(() => {
     try {
@@ -16,6 +20,22 @@ const AdminMashauPermits: React.FC = () => {
     }
   });
   const [error, setError] = useState<string | null>(null);
+
+  // Consider a user as admin if their profile role is admin or their email matches the configured admin email
+  const isSignedInAdmin = useMemo(() => {
+    if (profile?.role === 'admin') return true;
+    if (user?.email && ADMIN_EMAIL && user.email === ADMIN_EMAIL) return true;
+    return false;
+  }, [user?.email, profile?.role, ADMIN_EMAIL]);
+
+  useEffect(() => {
+    // Auto-authenticate if a signed-in admin visits this page
+    if (isSignedInAdmin && !authenticated) {
+      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
+      setAuthenticated(true);
+      setError(null);
+    }
+  }, [isSignedInAdmin, authenticated]);
 
   useEffect(() => {
     // Clear error when password changes
@@ -29,7 +49,6 @@ const AdminMashauPermits: React.FC = () => {
     if (invite && !authenticated) {
       (async () => {
         try {
-          // Use Supabase Functions SDK via the client so auth/apikey & url are handled
           const result = await supabase.functions.invoke('verify-admin-invite', {
             body: { token: invite }
           });
@@ -98,12 +117,13 @@ const AdminMashauPermits: React.FC = () => {
     setPassword('');
   };
 
+  // When not authenticated by any method, show password form with an option to sign in instead
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-full max-w-md p-6 bg-white rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4">Admin Access (Mashau Permits)</h2>
-          <p className="text-sm text-muted-foreground mb-4">Enter the admin access password to continue.</p>
+          <p className="text-sm text-muted-foreground mb-4">Enter the admin access password to continue, or sign in with your admin account.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -118,9 +138,13 @@ const AdminMashauPermits: React.FC = () => {
 
             {error && <div className="text-sm text-red-600">{error}</div>}
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-2">
               <Button className="btn-medical-primary" onClick={handleSubmit}>
                 Unlock Admin Panel
+              </Button>
+
+              <Button variant="outline" className="btn-medical-secondary" onClick={() => window.dispatchEvent(new Event('openAuthModal'))}>
+                Sign In
               </Button>
             </div>
 
@@ -131,21 +155,24 @@ const AdminMashauPermits: React.FC = () => {
     );
   }
 
-  // Provide a minimal admin profile override for actions performed in the panel
-  const overrideProfile = {
-    id: 'mashau-admin',
-    role: 'admin',
-    email: import.meta.env.VITE_ADMIN_EMAIL || 'admin@example.com',
-    first_name: 'Mashau',
-    last_name: 'Admin'
-  };
+  // If authenticated via password/invite and not signed-in admin, provide a minimal admin profile for dashboard
+  const shouldBypassAuth = !isSignedInAdmin;
+  const overrideProfile = shouldBypassAuth
+    ? {
+        id: 'mashau-admin',
+        role: 'admin',
+        email: ADMIN_EMAIL || 'admin@example.com',
+        first_name: 'Mashau',
+        last_name: 'Admin'
+      }
+    : undefined;
 
   return (
     <div>
       <div className="flex justify-end p-4">
         <Button variant="ghost" onClick={handleLogout}>Logout</Button>
       </div>
-      <AdminDashboardContent overrideProfile={overrideProfile} bypassAuth={true} />
+      <AdminDashboardContent overrideProfile={overrideProfile} bypassAuth={shouldBypassAuth} />
     </div>
   );
 };

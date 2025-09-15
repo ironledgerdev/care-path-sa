@@ -130,15 +130,24 @@ const DoctorSearch = () => {
             last_name
           )
         `)
-        .eq('is_available', true)
         .order('rating', { ascending: false });
+
+      // Note: we intentionally load all doctors so searches return every doctor in the DB
+      // Availability filtering is applied client-side by the UI if needed.
 
       if (error) throw error;
       setDoctors((data || []) as any[]);
     } catch (error: any) {
+      // Robust error extraction
+      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || "Failed to load doctors";
+      try {
+        console.error('Error fetching doctors:', error);
+      } catch (e) {
+        console.error('Error fetching doctors (string):', String(error));
+      }
       toast({
         title: "Error",
-        description: "Failed to load doctors",
+        description: errMsg,
         variant: "destructive",
       });
     } finally {
