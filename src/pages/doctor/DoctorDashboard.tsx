@@ -53,18 +53,70 @@ const DoctorDashboard = () => {
     }
   }, [user, profile]);
 
-  const fetchDoctorInfo = async () => {
+  // Ensure we have a doctor profile for this user. If missing (but role is doctor),
+  // try to create it from the most recent pending_doctors record.
+  const ensureDoctorProfile = async () => {
+    if (!user) return null;
     try {
-      if (!user) return;
-      const { data, error } = await supabase
+      const { data: existing, error: readErr } = await supabase
         .from('doctors')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
+      if (readErr) throw readErr;
+      if (existing) return existing;
 
-      if (error) throw error;
-      setDoctorInfo(data);
-      if (!data) {
+      // If no doctors row but user is a doctor, attempt recovery from pending_doctors
+      if (profile?.role === 'doctor') {
+        const { data: pending, error: pendErr } = await supabase
+          .from('pending_doctors')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (pendErr) {
+          console.warn('Pending doctors read failed (non-fatal):', pendErr.message || pendErr);
+        }
+        if (pending) {
+          const { data: inserted, error: insErr } = await supabase
+            .from('doctors')
+            .insert({
+              user_id: user.id,
+              practice_name: pending.practice_name,
+              speciality: pending.speciality,
+              qualification: pending.qualification,
+              license_number: pending.license_number,
+              years_experience: pending.years_experience || 0,
+              consultation_fee: pending.consultation_fee,
+              address: pending.address,
+              city: pending.city,
+              province: pending.province,
+              postal_code: pending.postal_code,
+              bio: pending.bio || null,
+              is_available: false,
+              approved_at: new Date().toISOString(),
+              approved_by: null,
+            })
+            .select('*')
+            .single();
+          if (insErr) throw insErr;
+          return inserted;
+        }
+      }
+      return null;
+    } catch (e: any) {
+      console.error('ensureDoctorProfile failed:', e?.message || e);
+      return null;
+    }
+  };
+
+  const fetchDoctorInfo = async () => {
+    try {
+      if (!user) return;
+      const ensured = await ensureDoctorProfile();
+      setDoctorInfo(ensured);
+      if (!ensured) {
         console.warn('No doctor record found for current user.');
       }
     } catch (error: any) {
@@ -143,13 +195,21 @@ const DoctorDashboard = () => {
   };
 
   const saveSchedule = async () => {
-    if (!doctorInfo?.id) {
+    let doctorId = doctorInfo?.id as string | undefined;
+    if (!doctorId) {
+      const ensured = await ensureDoctorProfile();
+      if (ensured?.id) {
+        setDoctorInfo(ensured);
+        doctorId = ensured.id;
+      }
+    }
+    if (!doctorId) {
       toast({ title: 'No doctor profile found', description: 'Complete enrollment or wait for approval to manage your schedule.', variant: 'destructive' });
       return;
     }
     setSavingSchedule(true);
     try {
-      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorInfo.id);
+      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorId);
 
       const rows: any[] = [];
       for (let d = 0; d < 7; d++) {
@@ -160,7 +220,7 @@ const DoctorDashboard = () => {
         allSlots.forEach((t) => {
           if (state.selected.has(t)) {
             rows.push({
-              doctor_id: doctorInfo.id,
+              doctor_id: doctorId!,
               day_of_week: d,
               start_time: t,
               end_time: toHHMM(toMinutes(t) + 30),
