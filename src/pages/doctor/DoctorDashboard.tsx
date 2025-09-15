@@ -305,6 +305,7 @@ const DoctorDashboard = () => {
     if (doctorInfo?.id) {
       loadSchedule();
       fetchPendingAppointments();
+      fetchDoctorStats();
       const bookingsChannel = supabase
         .channel(`doctor-${doctorInfo.id}-bookings`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `doctor_id=eq.${doctorInfo.id}` }, () => {
