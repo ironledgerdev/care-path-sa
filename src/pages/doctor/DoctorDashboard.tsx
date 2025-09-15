@@ -53,57 +53,28 @@ const DoctorDashboard = () => {
     }
   }, [user, profile]);
 
-  // Ensure we have a doctor profile for this user. If missing (but role is doctor),
-  // try to create it from the most recent pending_doctors record.
+  // Simple retry helper for transient network hiccups
+  const retry = async <T,>(fn: () => Promise<T>, attempts = 2): Promise<T> => {
+    let lastErr: any;
+    for (let i = 0; i < attempts; i++) {
+      try { return await fn(); } catch (e: any) {
+        lastErr = e;
+        if (!(e?.message || '').includes('Failed to fetch')) break;
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+    throw lastErr;
+  };
+
+  // Ensure we have a doctor profile for this user (no restricted-table lookups)
   const ensureDoctorProfile = async () => {
     if (!user) return null;
     try {
-      const { data: existing, error: readErr } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data: existing, error: readErr } = await retry(() =>
+        supabase.from('doctors').select('*').eq('user_id', user.id).maybeSingle()
+      );
       if (readErr) throw readErr;
-      if (existing) return existing;
-
-      // If no doctors row but user is a doctor, attempt recovery from pending_doctors
-      if (profile?.role === 'doctor') {
-        const { data: pending, error: pendErr } = await supabase
-          .from('pending_doctors')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (pendErr) {
-          console.warn('Pending doctors read failed (non-fatal):', pendErr.message || pendErr);
-        }
-        if (pending) {
-          const { data: inserted, error: insErr } = await supabase
-            .from('doctors')
-            .insert({
-              user_id: user.id,
-              practice_name: pending.practice_name,
-              speciality: pending.speciality,
-              qualification: pending.qualification,
-              license_number: pending.license_number,
-              years_experience: pending.years_experience || 0,
-              consultation_fee: pending.consultation_fee,
-              address: pending.address,
-              city: pending.city,
-              province: pending.province,
-              postal_code: pending.postal_code,
-              bio: pending.bio || null,
-              is_available: false,
-              approved_at: new Date().toISOString(),
-              approved_by: null,
-            })
-            .select('*')
-            .single();
-          if (insErr) throw insErr;
-          return inserted;
-        }
-      }
+      if (existing) return existing as any;
       return null;
     } catch (e: any) {
       console.error('ensureDoctorProfile failed:', e?.message || e);
@@ -166,10 +137,12 @@ const DoctorDashboard = () => {
   const loadSchedule = async () => {
     if (!doctorInfo?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('doctor_schedules')
-        .select('day_of_week, start_time, end_time, is_available')
-        .eq('doctor_id', doctorInfo.id);
+      const { data, error } = await retry(() =>
+        supabase
+          .from('doctor_schedules')
+          .select('day_of_week, start_time, end_time, is_available')
+          .eq('doctor_id', doctorInfo.id)
+      );
       if (error) throw error;
 
       const next: Record<number, DayState> = {} as any;
