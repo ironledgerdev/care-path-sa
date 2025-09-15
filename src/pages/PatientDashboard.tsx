@@ -190,12 +190,24 @@ const PatientDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('doctors')
-        .select(`id, consultation_fee, speciality, practice_name, profiles:user_id(first_name,last_name)`)
+        .select('id, consultation_fee, speciality, practice_name, user_id')
         .eq('is_available', true)
         .order('rating', { ascending: false })
         .limit(6);
       if (error) throw error;
-      setAvailableDoctors((data as any) || []);
+      let enriched = (data || []) as any[];
+      const ids = enriched.map((d: any) => d.user_id).filter(Boolean);
+      if (ids.length) {
+        try {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', ids);
+          const map = new Map((profiles || []).map((p: any) => [p.id, p]));
+          enriched = enriched.map((d: any) => ({ ...d, profiles: map.get(d.user_id) || null }));
+        } catch (_) {}
+      }
+      setAvailableDoctors(enriched as any);
     } catch (e) {
       // silent; dashboard still loads
     }
