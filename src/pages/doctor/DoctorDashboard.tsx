@@ -53,18 +53,41 @@ const DoctorDashboard = () => {
     }
   }, [user, profile]);
 
+  // Simple retry helper for transient network hiccups
+  const retry = async <T,>(fn: () => Promise<T>, attempts = 2): Promise<T> => {
+    let lastErr: any;
+    for (let i = 0; i < attempts; i++) {
+      try { return await fn(); } catch (e: any) {
+        lastErr = e;
+        if (!(e?.message || '').includes('Failed to fetch')) break;
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+    throw lastErr;
+  };
+
+  // Ensure we have a doctor profile for this user (no restricted-table lookups)
+  const ensureDoctorProfile = async () => {
+    if (!user) return null;
+    try {
+      const { data: existing, error: readErr } = await retry(() =>
+        supabase.from('doctors').select('*').eq('user_id', user.id).maybeSingle()
+      );
+      if (readErr) throw readErr;
+      if (existing) return existing as any;
+      return null;
+    } catch (e: any) {
+      console.error('ensureDoctorProfile failed:', e?.message || e);
+      return null;
+    }
+  };
+
   const fetchDoctorInfo = async () => {
     try {
       if (!user) return;
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setDoctorInfo(data);
-      if (!data) {
+      const ensured = await ensureDoctorProfile();
+      setDoctorInfo(ensured);
+      if (!ensured) {
         console.warn('No doctor record found for current user.');
       }
     } catch (error: any) {
@@ -77,17 +100,20 @@ const DoctorDashboard = () => {
 
     try {
       const [bookingsResult, revenueResult] = await Promise.all([
-        supabase
-          .from('bookings')
-          .select('status, total_amount, created_at')
-          .eq('doctor_id', doctorInfo.id),
-        
-        supabase
-          .from('bookings')
-          .select('total_amount')
-          .eq('doctor_id', doctorInfo.id)
-          .eq('status', 'completed')
-          .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        retry(() =>
+          supabase
+            .from('bookings')
+            .select('status, total_amount, created_at')
+            .eq('doctor_id', doctorInfo.id)
+        ),
+        retry(() =>
+          supabase
+            .from('bookings')
+            .select('total_amount')
+            .eq('doctor_id', doctorInfo.id)
+            .eq('status', 'completed')
+            .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        )
       ]);
 
       const bookings = bookingsResult.data || [];
@@ -114,10 +140,12 @@ const DoctorDashboard = () => {
   const loadSchedule = async () => {
     if (!doctorInfo?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('doctor_schedules')
-        .select('day_of_week, start_time, end_time, is_available')
-        .eq('doctor_id', doctorInfo.id);
+      const { data, error } = await retry(() =>
+        supabase
+          .from('doctor_schedules')
+          .select('day_of_week, start_time, end_time, is_available')
+          .eq('doctor_id', doctorInfo.id)
+      );
       if (error) throw error;
 
       const next: Record<number, DayState> = {} as any;
@@ -143,34 +171,48 @@ const DoctorDashboard = () => {
   };
 
   const saveSchedule = async () => {
-    if (!doctorInfo?.id) {
+    let doctorId = doctorInfo?.id as string | undefined;
+    if (!doctorId) {
+      const ensured = await ensureDoctorProfile();
+      if (ensured?.id) {
+        setDoctorInfo(ensured);
+        doctorId = ensured.id;
+      }
+    }
+    if (!doctorId) {
       toast({ title: 'No doctor profile found', description: 'Complete enrollment or wait for approval to manage your schedule.', variant: 'destructive' });
       return;
     }
     setSavingSchedule(true);
     try {
-      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorInfo.id);
+      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorId);
 
       const rows: any[] = [];
       for (let d = 0; d < 7; d++) {
         const state = dayStates[d];
         if (!state) continue;
-        const allSlots = [] as string[];
-        for (let m = toMinutes(state.open); m < toMinutes(state.close); m += 30) allSlots.push(toHHMM(m));
-        allSlots.forEach((t) => {
-          if (state.selected.has(t)) {
-            rows.push({
-              doctor_id: doctorInfo.id,
-              day_of_week: d,
-              start_time: t,
-              end_time: toHHMM(toMinutes(t) + 30),
-              is_available: true,
-            });
-          }
-        });
+        const selectedTimes = Array.from(state.selected.values()).sort();
+        if (selectedTimes.length === 0) {
+          // No availability for this day → skip (no row with is_available=false needed)
+          continue;
+        }
+        const start = selectedTimes[0];
+        const endLast = selectedTimes[selectedTimes.length - 1];
+        const end = toHHMM(toMinutes(endLast) + 30);
+        if (toMinutes(end) > toMinutes(start)) {
+          rows.push({
+            doctor_id: doctorId!,
+            day_of_week: d,
+            start_time: start,
+            end_time: end,
+            is_available: true,
+          });
+        }
       }
       if (rows.length) {
-        const { error } = await supabase.from('doctor_schedules').insert(rows);
+        const { error } = await supabase
+          .from('doctor_schedules')
+          .upsert(rows, { onConflict: 'doctor_id,day_of_week' });
         if (error) throw error;
       }
       toast({ title: 'Schedule is live', description: 'Patients can now book the selected times in real time.' });
@@ -187,12 +229,14 @@ const DoctorDashboard = () => {
     if (!doctorInfo?.id) return;
     setLoadingBookings(true);
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('id, user_id, appointment_date, appointment_time, status')
-        .eq('doctor_id', doctorInfo.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
+      const { data, error } = await retry(() =>
+        supabase
+          .from('bookings')
+          .select('id, user_id, appointment_date, appointment_time, status')
+          .eq('doctor_id', doctorInfo.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true })
+      );
       if (error) throw error;
       setPendingBookings(data || []);
     } catch (e: any) {
@@ -245,6 +289,7 @@ const DoctorDashboard = () => {
     if (doctorInfo?.id) {
       loadSchedule();
       fetchPendingAppointments();
+      fetchDoctorStats();
       const bookingsChannel = supabase
         .channel(`doctor-${doctorInfo.id}-bookings`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `doctor_id=eq.${doctorInfo.id}` }, () => {

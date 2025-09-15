@@ -207,7 +207,7 @@ const BookAppointment = () => {
 
     setIsBooking(true);
     try {
-      // Create booking via Edge Function (handles membership perks & double-booking)
+      // Primary: Edge Function via supabase-js
       const { data: createData, error: createError } = await supabase.functions.invoke('create-booking', {
         body: {
           doctor_id: doctor.id,
@@ -217,10 +217,50 @@ const BookAppointment = () => {
         }
       });
 
-      if (createError || !createData?.success) throw new Error(createError?.message || createData?.error || 'Failed to create booking');
-      const booking = createData.booking;
+      let booking = createData?.booking;
+      let lastErr: any = createError || (createData?.success ? null : createData?.error);
 
-      // Initialize PayFast payment using server-calculated amount
+      // Fallback: direct HTTPS call to Functions (handles some CORS/network issues)
+      if (!booking) {
+        try {
+          const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = await import('@/integrations/supabase/client');
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          const host = new URL(SUPABASE_URL).hostname;
+          const projectRef = host.split('.')[0];
+          const fnUrl = `https://${projectRef}.functions.supabase.co/create-booking`;
+          const resp = await fetch(fnUrl, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              doctor_id: doctor.id,
+              appointment_date: selectedDate,
+              appointment_time: selectedTime,
+              patient_notes: `${patientNotes || ''}\nPayment method: ${paymentMethod.replace('_', ' ')}`
+            }),
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json?.success && json?.booking) booking = json.booking;
+            else lastErr = new Error(json?.error || 'Failed to create booking');
+          } else {
+            const text = await resp.text().catch(() => '');
+            lastErr = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
+          }
+        } catch (e: any) {
+          lastErr = e;
+        }
+      }
+
+      if (!booking) throw lastErr || new Error('Failed to create booking');
+
+      // Initialize PayFast payment (primary invoke)
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
           booking_id: booking.id,
@@ -232,19 +272,120 @@ const BookAppointment = () => {
         }
       });
 
-      if (paymentError) throw paymentError;
+      let paymentUrl = paymentData?.payment_url as string | undefined;
+      let payErr: any = paymentError;
 
-      // Redirect to PayFast
-      if (paymentData.payment_url) {
-        window.location.href = paymentData.payment_url;
+      // Fallback: direct HTTPS call to Functions
+      if (!paymentUrl) {
+        try {
+          const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = await import('@/integrations/supabase/client');
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          const host = new URL(SUPABASE_URL).hostname;
+          const projectRef = host.split('.')[0];
+          const fnUrl = `https://${projectRef}.functions.supabase.co/create-payfast-payment`;
+          const resp = await fetch(fnUrl, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              booking_id: booking.id,
+              amount: booking.booking_fee,
+              description: `Booking fee for appointment with Dr. ${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
+              doctor_name: `${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
+              appointment_date: selectedDate,
+              appointment_time: selectedTime
+            }),
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json?.success && json?.payment_url) paymentUrl = json.payment_url;
+            else payErr = new Error(json?.error || 'Payment URL not returned');
+          } else {
+            const text = await resp.text().catch(() => '');
+            payErr = new Error(`Edge Function HTTP ${resp.status}${text ? `: ${text}` : ''}`);
+          }
+        } catch (e: any) {
+          payErr = e;
+        }
       }
 
-    } catch (error: any) {
-      toast({
-        title: "Booking Failed",
-        description: error.message || "Failed to create booking",
-        variant: "destructive",
-      });
+      if (!paymentUrl) throw payErr || new Error('Payment initialization failed');
+
+      window.location.href = paymentUrl;
+
+    } catch (errAny: any) {
+      // Final fallback: create booking directly to avoid losing the slot if Functions are unreachable
+      try {
+        // Prevent double-booking
+        const { data: conflict } = await supabase
+          .from('bookings')
+          .select('id, status')
+          .eq('doctor_id', doctor!.id)
+          .eq('appointment_date', selectedDate)
+          .eq('appointment_time', selectedTime)
+          .neq('status', 'cancelled');
+        if ((conflict || []).length > 0) {
+          toast({ title: 'Slot Unavailable', description: 'Time slot no longer available', variant: 'destructive' });
+          return;
+        }
+
+        // Membership check
+        const { data: membership } = await supabase
+          .from('memberships')
+          .select('membership_type, free_bookings_remaining')
+          .eq('user_id', user!.id)
+          .single();
+        const baseBookingFee = 1000; // cents
+        let booking_fee = baseBookingFee;
+        let shouldDecrement = false;
+        if (membership?.membership_type === 'premium' && (membership.free_bookings_remaining ?? 0) > 0) {
+          booking_fee = 0;
+          shouldDecrement = true;
+        }
+
+        const { data: inserted, error: insErr } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: user!.id,
+            doctor_id: doctor!.id,
+            appointment_date: selectedDate,
+            appointment_time: selectedTime,
+            patient_notes: `${patientNotes || ''}\nPayment method: ${paymentMethod.replace('_', ' ')}`,
+            consultation_fee: doctor!.consultation_fee,
+            booking_fee,
+            total_amount: booking_fee,
+            status: 'pending',
+            payment_status: 'pending',
+          })
+          .select('*')
+          .single();
+        if (insErr) throw insErr;
+
+        if (shouldDecrement) {
+          await supabase
+            .from('memberships')
+            .update({
+              free_bookings_remaining: (membership!.free_bookings_remaining || 0) - 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user!.id);
+        }
+
+        toast({ title: 'Booking Created', description: 'Payment pending. You can retry payment from Booking History.', variant: 'default' });
+        navigate(`/booking-success?booking_id=${inserted.id}`);
+      } catch (finalErr: any) {
+        toast({
+          title: 'Booking Failed',
+          description: finalErr?.message || errAny?.message || 'Failed to create booking',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsBooking(false);
     }
