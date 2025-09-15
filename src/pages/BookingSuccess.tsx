@@ -40,44 +40,51 @@ const BookingSuccess = () => {
   const bookingId = searchParams.get('booking_id');
 
   useEffect(() => {
-    if (bookingId && user) {
+    if (bookingId) {
       fetchBookingDetails();
     } else {
       setIsLoading(false);
     }
-  }, [bookingId, user]);
+  }, [bookingId]);
 
   const fetchBookingDetails = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          doctors (
-            practice_name,
-            speciality,
-            city,
-            province,
-            profiles:user_id (
-              first_name,
-              last_name
+    let attempts = 3;
+    while (attempts-- > 0) {
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            doctors (
+              practice_name,
+              speciality,
+              city,
+              province,
+              profiles:user_id (
+                first_name,
+                last_name
+              )
             )
-          )
-        `)
-        .eq('id', bookingId)
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error) throw error;
-      setBooking(data as any);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load booking details",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+          `)
+          .eq('id', bookingId)
+          .single();
+        if (error) throw error;
+        setBooking(data as any);
+        break;
+      } catch (error: any) {
+        if (attempts <= 0) {
+          toast({
+            title: "Error",
+            description: "Failed to load booking details",
+            variant: "destructive",
+          });
+        } else {
+          await new Promise(r => setTimeout(r, 400));
+          continue;
+        }
+      } finally {
+        if (attempts <= 0 || booking) setIsLoading(false);
+      }
     }
   };
 
