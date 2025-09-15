@@ -121,11 +121,16 @@ const DoctorSearch = () => {
       if (error) throw error;
       setDoctors((data || []) as any[]);
     } catch (error: any) {
-      // Log error for debugging and show helpful message to the user
-      console.error('Error fetching doctors:', error);
+      // Robust error extraction
+      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || "Failed to load doctors";
+      try {
+        console.error('Error fetching doctors:', error);
+      } catch (e) {
+        console.error('Error fetching doctors (string):', String(error));
+      }
       toast({
         title: "Error",
-        description: error?.message || "Failed to load doctors",
+        description: errMsg,
         variant: "destructive",
       });
     } finally {
