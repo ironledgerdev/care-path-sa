@@ -213,15 +213,16 @@ const OptimizedDoctorSearch = memo(() => {
             last_name
           )
         `)
-        .eq('is_available', true)
         .order('rating', { ascending: false });
+      // Load all doctors so search returns complete results
 
       if (error) throw error;
       setDoctors((data || []) as any[]);
     } catch (error: any) {
+      console.error('Error fetching doctors (optimized):', error);
       toast({
         title: "Error",
-        description: "Failed to load doctors",
+        description: error?.message || "Failed to load doctors",
         variant: "destructive",
       });
     } finally {
