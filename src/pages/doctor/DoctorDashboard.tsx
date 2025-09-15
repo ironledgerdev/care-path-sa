@@ -100,17 +100,20 @@ const DoctorDashboard = () => {
 
     try {
       const [bookingsResult, revenueResult] = await Promise.all([
-        supabase
-          .from('bookings')
-          .select('status, total_amount, created_at')
-          .eq('doctor_id', doctorInfo.id),
-        
-        supabase
-          .from('bookings')
-          .select('total_amount')
-          .eq('doctor_id', doctorInfo.id)
-          .eq('status', 'completed')
-          .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        retry(() =>
+          supabase
+            .from('bookings')
+            .select('status, total_amount, created_at')
+            .eq('doctor_id', doctorInfo.id)
+        ),
+        retry(() =>
+          supabase
+            .from('bookings')
+            .select('total_amount')
+            .eq('doctor_id', doctorInfo.id)
+            .eq('status', 'completed')
+            .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        )
       ]);
 
       const bookings = bookingsResult.data || [];
@@ -226,12 +229,14 @@ const DoctorDashboard = () => {
     if (!doctorInfo?.id) return;
     setLoadingBookings(true);
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('id, user_id, appointment_date, appointment_time, status')
-        .eq('doctor_id', doctorInfo.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
+      const { data, error } = await retry(() =>
+        supabase
+          .from('bookings')
+          .select('id, user_id, appointment_date, appointment_time, status')
+          .eq('doctor_id', doctorInfo.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true })
+      );
       if (error) throw error;
       setPendingBookings(data || []);
     } catch (e: any) {
