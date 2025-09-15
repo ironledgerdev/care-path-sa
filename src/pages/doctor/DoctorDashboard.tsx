@@ -162,13 +162,19 @@ const DoctorDashboard = () => {
   };
 
   const saveSchedule = async () => {
-    if (!doctorInfo?.id) {
-      toast({ title: 'No doctor profile found', description: 'Complete enrollment or wait for approval to manage your schedule.', variant: 'destructive' });
-      return;
-    }
     setSavingSchedule(true);
     try {
-      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorInfo.id);
+      let doctorId = doctorInfo?.id as string | undefined;
+      if (!doctorId) {
+        const resolved = await fetchDoctorInfo();
+        doctorId = resolved?.id;
+      }
+      if (!doctorId) {
+        toast({ title: 'No doctor profile found', description: 'Your account is set to Doctor but no provider record exists. Please contact support or re-submit enrollment.', variant: 'destructive' });
+        return;
+      }
+
+      await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorId);
 
       const rows: any[] = [];
       for (let d = 0; d < 7; d++) {
@@ -179,7 +185,7 @@ const DoctorDashboard = () => {
         allSlots.forEach((t) => {
           if (state.selected.has(t)) {
             rows.push({
-              doctor_id: doctorInfo.id,
+              doctor_id: doctorId!,
               day_of_week: d,
               start_time: t,
               end_time: toHHMM(toMinutes(t) + 30),
