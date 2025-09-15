@@ -48,6 +48,7 @@ const BookAppointment = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [patientNotes, setPatientNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'medical_aid' | 'cash' | 'card'>('cash');
   const [isBooking, setIsBooking] = useState(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
 
@@ -212,7 +213,7 @@ const BookAppointment = () => {
           doctor_id: doctor.id,
           appointment_date: selectedDate,
           appointment_time: selectedTime,
-          patient_notes: patientNotes
+          patient_notes: `${patientNotes || ''}\nPayment method: ${paymentMethod.replace('_', ' ')}`
         }
       });
 
@@ -223,8 +224,8 @@ const BookAppointment = () => {
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
           booking_id: booking.id,
-          amount: booking.total_amount,
-          description: `Consultation with Dr. ${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
+          amount: booking.booking_fee,
+          description: `Booking fee for appointment with Dr. ${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           doctor_name: `${doctor.profiles?.first_name} ${doctor.profiles?.last_name}`,
           appointment_date: selectedDate,
           appointment_time: selectedTime
@@ -330,9 +331,12 @@ const BookAppointment = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold text-primary">
-                      {formatCurrency(doctor.consultation_fee)}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-primary">
+                        {formatCurrency(doctor.consultation_fee)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">Consultation fee paid at doctor</span>
+                    </div>
                   </div>
                 </div>
 
@@ -425,18 +429,27 @@ const BookAppointment = () => {
                   </div>
                 </div>
 
+                {/* Payment Method */}
+                <div>
+                  <Label className="mb-2 block">Payment Method at Doctor</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button type="button" variant={paymentMethod==='medical_aid'?'default':'outline'} onClick={() => setPaymentMethod('medical_aid')} className={paymentMethod==='medical_aid'?'btn-medical-primary':'btn-medical-secondary'}>
+                      Medical Aid
+                    </Button>
+                    <Button type="button" variant={paymentMethod==='cash'?'default':'outline'} onClick={() => setPaymentMethod('cash')} className={paymentMethod==='cash'?'btn-medical-primary':'btn-medical-secondary'}>
+                      Cash
+                    </Button>
+                    <Button type="button" variant={paymentMethod==='card'?'default':'outline'} onClick={() => setPaymentMethod('card')} className={paymentMethod==='card'?'btn-medical-primary':'btn-medical-secondary'}>
+                      Card
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Consultation fee is settled directly with the doctor using your selected method.</p>
+                </div>
+
                 {/* Patient Notes */}
                 <div>
-                  <Label htmlFor="notes" className="mb-2 block">
-                    Additional Notes (Optional)
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Describe your symptoms or reason for consultation..."
-                    value={patientNotes}
-                    onChange={(e) => setPatientNotes(e.target.value)}
-                    rows={4}
-                  />
+                  <Label htmlFor="notes" className="mb-2 block">Additional Notes (Optional)</Label>
+                  <Textarea id="notes" placeholder="Describe your symptoms or reason for consultation..." value={patientNotes} onChange={(e) => setPatientNotes(e.target.value)} rows={4} />
                 </div>
 
                 {/* Booking Summary */}
@@ -445,17 +458,17 @@ const BookAppointment = () => {
                     <h4 className="font-semibold mb-3">Booking Summary</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span>Consultation Fee</span>
+                        <span>Consultation Fee (pay at doctor)</span>
                         <span>{formatCurrency(doctor.consultation_fee)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Booking Fee</span>
+                        <span>Booking Fee (pay online)</span>
                         <span>{formatCurrency(1000)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
-                        <span>Total Amount</span>
-                        <span className="text-primary">{formatCurrency(doctor.consultation_fee + 1000)}</span>
+                        <span>Amount Charged Now</span>
+                        <span className="text-primary">{formatCurrency(1000)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -475,14 +488,13 @@ const BookAppointment = () => {
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5 mr-2" />
-                      Book & Pay with PayFast
+                      Pay Booking Fee with PayFast
                     </>
                   )}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  By booking this appointment, you agree to our terms of service and privacy policy.
-                  Payment is processed securely through PayFast.
+                  You will only be charged the booking fee now. Consultation fees are paid directly to the doctor.
                 </p>
               </CardContent>
             </Card>
