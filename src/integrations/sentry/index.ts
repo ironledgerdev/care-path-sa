@@ -1,5 +1,7 @@
 import * as Sentry from "@sentry/react";
 
+import * as Sentry from '@sentry/react';
+
 const DSN = (import.meta as any).env?.VITE_SENTRY_DSN as string | undefined;
 
 if (DSN) {
