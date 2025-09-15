@@ -56,19 +56,54 @@ const DoctorDashboard = () => {
   const fetchDoctorInfo = async () => {
     try {
       if (!user) return;
-      const { data, error } = await supabase
+      // Prefer an approved doctor record if multiple exist, otherwise pick most recent
+      const base = supabase
+        .from('doctors')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Try approved first
+      const approvedQuery = base
+        .eq('approved_at', null as any) // placeholder to chain correctly; will be removed below
+      // @ts-expect-error chaining helper
+      ;
+      // Build two queries explicitly to avoid shared builders
+      const { data: approvedList, error: approvedErr } = await supabase
         .from('doctors')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .not('approved_at', 'is', null)
+        .order('approved_at', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      if (error) throw error;
-      setDoctorInfo(data);
-      if (!data) {
+      if (approvedErr) throw approvedErr;
+
+      if (approvedList && approvedList.length > 0) {
+        setDoctorInfo(approvedList[0]);
+        return approvedList[0];
+      }
+
+      // Fallback: any record for user (pick most recent)
+      const { data: anyList, error: anyErr } = await supabase
+        .from('doctors')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (anyErr) throw anyErr;
+
+      const doc = anyList?.[0] || null;
+      setDoctorInfo(doc);
+      if (!doc) {
         console.warn('No doctor record found for current user.');
       }
+      return doc;
     } catch (error: any) {
       console.error('Error fetching doctor info:', error?.message || error);
+      setDoctorInfo(null);
+      return null;
     }
   };
 
