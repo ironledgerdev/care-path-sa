@@ -41,15 +41,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       setProfile(data);
+      return data;
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+      return null;
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      const existing = await fetchProfile(user.id);
+      if (!existing) {
+        try {
+          const email = user.email ?? '';
+          const { data: inserted } = await supabase
+            .from('profiles')
+            .insert({ id: user.id, email, role: 'patient' })
+            .select('*')
+            .single();
+          if (inserted) setProfile(inserted);
+        } catch (e) {
+          // If insert fails due to RLS, policies may differ; ignore and let UI continue
+          console.warn('Profile create failed:', e);
+        }
+      }
     }
   };
 
@@ -83,8 +99,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
+          setTimeout(async () => {
+            const existing = await fetchProfile(session.user!.id);
+            if (!existing) {
+              try {
+                const email = session.user!.email ?? '';
+                const { data: inserted } = await supabase
+                  .from('profiles')
+                  .insert({ id: session.user!.id, email, role: 'patient' })
+                  .select('*')
+                  .single();
+                if (inserted) setProfile(inserted);
+              } catch (e) {
+                console.warn('Profile create failed on auth change:', e);
+              }
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -94,12 +123,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id);
+        const existing = await fetchProfile(session.user.id);
+        if (!existing) {
+          try {
+            const email = session.user.email ?? '';
+            const { data: inserted } = await supabase
+              .from('profiles')
+              .insert({ id: session.user.id, email, role: 'patient' })
+              .select('*')
+              .single();
+            if (inserted) setProfile(inserted);
+          } catch (e) {
+            console.warn('Profile create failed on initial session:', e);
+          }
+        }
       }
       setLoading(false);
     });
