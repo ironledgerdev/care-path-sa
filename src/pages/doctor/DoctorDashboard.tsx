@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface DoctorStats {
   totalBookings: number;
@@ -38,6 +39,7 @@ const DoctorDashboard = () => {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const { user, profile } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user && profile?.role === 'doctor') {
@@ -48,10 +50,11 @@ const DoctorDashboard = () => {
 
   const fetchDoctorInfo = async () => {
     try {
+      if (!user) return;
       const { data, error } = await supabase
         .from('doctors')
         .select('*')
-        .limit(1)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -137,8 +140,11 @@ const DoctorDashboard = () => {
         const { error } = await supabase.from('doctor_schedules').insert(rows);
         if (error) throw error;
       }
+      toast({ title: 'Schedule saved', description: 'Your availability has been updated.' });
+      await loadSchedule();
     } catch (e: any) {
       console.error('Failed to save schedule', e?.message || e);
+      toast({ title: 'Failed to save schedule', description: e?.message || String(e), variant: 'destructive' });
     } finally {
       setSavingSchedule(false);
     }
