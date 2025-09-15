@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface DoctorStats {
   totalBookings: number;
@@ -31,13 +32,19 @@ const DoctorDashboard = () => {
     rating: 0
   });
   const [doctorInfo, setDoctorInfo] = useState<any>(null);
-  const [scheduleForm, setScheduleForm] = useState(() => (
-    Array.from({ length: 7 }).map((_, i) => ({ day_of_week: i, start_time: '09:00', end_time: '17:00', is_available: false }))
-  ));
+  // Tee-time style slots per day
+  type DayState = { open: string; close: string; selected: Set<string> };
+  const [dayStates, setDayStates] = useState<Record<number, DayState>>(() => {
+    const base: Record<number, DayState> = {} as any;
+    for (let i = 0; i < 7; i++) base[i] = { open: '08:00', close: '17:00', selected: new Set() };
+    return base;
+  });
+  const [activeDay, setActiveDay] = useState<number>(1); // default Monday
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const { user, profile } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user && profile?.role === 'doctor') {
@@ -48,10 +55,11 @@ const DoctorDashboard = () => {
 
   const fetchDoctorInfo = async () => {
     try {
+      if (!user) return;
       const { data, error } = await supabase
         .from('doctors')
         .select('*')
-        .limit(1)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -96,6 +104,13 @@ const DoctorDashboard = () => {
     }
   };
 
+  const toMinutes = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const toHHMM = (mins: number) => {
+    const h = Math.floor(mins / 60).toString().padStart(2, '0');
+    const m = (mins % 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
   const loadSchedule = async () => {
     if (!doctorInfo?.id) return;
     try {
@@ -104,41 +119,65 @@ const DoctorDashboard = () => {
         .select('day_of_week, start_time, end_time, is_available')
         .eq('doctor_id', doctorInfo.id);
       if (error) throw error;
-      const base = Array.from({ length: 7 }).map((_, i) => ({ day_of_week: i, start_time: '09:00', end_time: '17:00', is_available: false }));
+
+      const next: Record<number, DayState> = {} as any;
+      for (let i = 0; i < 7; i++) next[i] = { open: '08:00', close: '17:00', selected: new Set() };
+
       (data || []).forEach((row: any) => {
-        base[row.day_of_week] = {
-          day_of_week: row.day_of_week,
-          start_time: (row.start_time as string).slice(0,5),
-          end_time: (row.end_time as string).slice(0,5),
-          is_available: row.is_available !== false,
-        };
+        if (row.is_available === false) return;
+        const d = row.day_of_week as number;
+        const start = (row.start_time as string).slice(0,5);
+        const end = (row.end_time as string).slice(0,5);
+        if (!next[d]) next[d] = { open: '08:00', close: '17:00', selected: new Set() };
+        // ensure open/close encompass existing rows
+        if (toMinutes(start) < toMinutes(next[d].open)) next[d].open = start;
+        if (toMinutes(end) > toMinutes(next[d].close)) next[d].close = end;
+        for (let m = toMinutes(start); m < toMinutes(end); m += 30) {
+          next[d].selected.add(toHHMM(m));
+        }
       });
-      setScheduleForm(base);
+      setDayStates(next);
     } catch (e: any) {
       console.error('Failed to load schedule', e?.message || e);
     }
   };
 
   const saveSchedule = async () => {
-    if (!doctorInfo?.id) return;
+    if (!doctorInfo?.id) {
+      toast({ title: 'No doctor profile found', description: 'Complete enrollment or wait for approval to manage your schedule.', variant: 'destructive' });
+      return;
+    }
     setSavingSchedule(true);
     try {
       await supabase.from('doctor_schedules').delete().eq('doctor_id', doctorInfo.id);
-      const rows = scheduleForm
-        .filter((d: any) => d.is_available && d.start_time && d.end_time)
-        .map((d: any) => ({
-          doctor_id: doctorInfo.id,
-          day_of_week: d.day_of_week,
-          start_time: d.start_time,
-          end_time: d.end_time,
-          is_available: true,
-        }));
+
+      const rows: any[] = [];
+      for (let d = 0; d < 7; d++) {
+        const state = dayStates[d];
+        if (!state) continue;
+        const allSlots = [] as string[];
+        for (let m = toMinutes(state.open); m < toMinutes(state.close); m += 30) allSlots.push(toHHMM(m));
+        allSlots.forEach((t) => {
+          if (state.selected.has(t)) {
+            rows.push({
+              doctor_id: doctorInfo.id,
+              day_of_week: d,
+              start_time: t,
+              end_time: toHHMM(toMinutes(t) + 30),
+              is_available: true,
+            });
+          }
+        });
+      }
       if (rows.length) {
         const { error } = await supabase.from('doctor_schedules').insert(rows);
         if (error) throw error;
       }
+      toast({ title: 'Schedule is live', description: 'Patients can now book the selected times in real time.' });
+      await loadSchedule();
     } catch (e: any) {
       console.error('Failed to save schedule', e?.message || e);
+      toast({ title: 'Failed to save schedule', description: e?.message || String(e), variant: 'destructive' });
     } finally {
       setSavingSchedule(false);
     }
@@ -362,27 +401,71 @@ const DoctorDashboard = () => {
                 <CardTitle>Manage Schedule</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {scheduleForm.map((row: any, idx: number) => (
-                    <div key={idx} className="grid grid-cols-12 items-center gap-3">
-                      <div className="col-span-4 text-sm font-medium text-muted-foreground">
-                        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][row.day_of_week]}
-                      </div>
-                      <div className="col-span-2">
-                        <input type="time" className="border rounded px-2 py-1 w-full" value={row.start_time}
-                          onChange={(e) => setScheduleForm((prev: any) => prev.map((r: any, i: number) => i===idx ? { ...r, start_time: e.target.value } : r))} />
-                      </div>
-                      <div className="col-span-2">
-                        <input type="time" className="border rounded px-2 py-1 w-full" value={row.end_time}
-                          onChange={(e) => setScheduleForm((prev: any) => prev.map((r: any, i: number) => i===idx ? { ...r, end_time: e.target.value } : r))} />
-                      </div>
-                      <div className="col-span-2 flex items-center gap-2">
-                        <input id={`avail-${idx}`} type="checkbox" checked={row.is_available}
-                          onChange={(e) => setScheduleForm((prev: any) => prev.map((r: any, i: number) => i===idx ? { ...r, is_available: e.target.checked } : r))} />
-                        <label htmlFor={`avail-${idx}`} className="text-sm">Available</label>
-                      </div>
+                <div className="space-y-6">
+                  {/* Day selector */}
+                  <div className="flex gap-2 flex-wrap">
+                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, i) => (
+                      <Button key={d} variant={activeDay===i?'default':'outline'} className={activeDay===i?'btn-medical-primary':'btn-medical-secondary'} onClick={() => setActiveDay(i)}>
+                        {d}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Open/Close for active day */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Open</label>
+                      <input type="time" className="border rounded px-2 py-2 w-full" value={dayStates[activeDay]?.open}
+                        onChange={(e) => setDayStates((prev) => ({ ...prev, [activeDay]: { ...prev[activeDay], open: e.target.value } }))} />
                     </div>
-                  ))}
+                    <div>
+                      <label className="text-sm text-muted-foreground">Close</label>
+                      <input type="time" className="border rounded px-2 py-2 w-full" value={dayStates[activeDay]?.close}
+                        onChange={(e) => setDayStates((prev) => ({ ...prev, [activeDay]: { ...prev[activeDay], close: e.target.value } }))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => {
+                        const state = dayStates[activeDay];
+                        const next = new Set<string>();
+                        for (let m = toMinutes(state.open); m < toMinutes(state.close); m += 30) next.add(toHHMM(m));
+                        setDayStates((prev) => ({ ...prev, [activeDay]: { ...prev[activeDay], selected: next } }));
+                      }}>Select All</Button>
+                      <Button variant="outline" onClick={() => setDayStates((prev) => ({ ...prev, [activeDay]: { ...prev[activeDay], selected: new Set() } }))}>Clear</Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => {
+                        const copy = dayStates[activeDay];
+                        setDayStates((prev) => {
+                          const next = { ...prev } as Record<number, DayState>;
+                          for (let i = 0; i < 7; i++) next[i] = i===activeDay ? prev[i] : { open: copy.open, close: copy.close, selected: new Set(copy.selected) };
+                          return next;
+                        });
+                      }}>Copy to all days</Button>
+                    </div>
+                  </div>
+
+                  {/* Slot grid for active day */}
+                  <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                    {(() => {
+                      const state = dayStates[activeDay];
+                      const items: JSX.Element[] = [];
+                      for (let m = toMinutes(state.open); m < toMinutes(state.close); m += 30) {
+                        const t = toHHMM(m);
+                        const selected = state.selected.has(t);
+                        items.push(
+                          <Button key={t} variant={selected?'default':'outline'} onClick={() => {
+                            setDayStates((prev) => {
+                              const next = new Set(prev[activeDay].selected);
+                              if (next.has(t)) next.delete(t); else next.add(t);
+                              return { ...prev, [activeDay]: { ...prev[activeDay], selected: next } };
+                            });
+                          }} className={`h-10 ${selected?'btn-medical-primary':'btn-medical-secondary'}`}>{t}</Button>
+                        );
+                      }
+                      return items;
+                    })()}
+                  </div>
+
                   <div className="pt-2">
                     <Button onClick={saveSchedule} disabled={savingSchedule} className="btn-medical-primary">
                       {savingSchedule ? 'Saving...' : 'Save Schedule'}

@@ -121,9 +121,14 @@ export function MobileHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={() => window.dispatchEvent(new Event('openAuthModal'))} size="sm" className="btn-medical-primary">
-              Sign In
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { tab: 'signup' } }))} size="sm" variant="outline" className="btn-medical-secondary">
+                Sign Up
+              </Button>
+              <Button onClick={() => window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { tab: 'login' } }))} size="sm" className="btn-medical-primary">
+                Sign In
+              </Button>
+            </div>
           )}
         </div>
       </div>

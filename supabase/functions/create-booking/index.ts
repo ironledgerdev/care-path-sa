@@ -80,9 +80,8 @@ serve(async (req) => {
     }
 
     const consultation_fee = doctor.consultation_fee as number;
-    const total_amount = consultation_fee + booking_fee;
+    const total_amount = booking_fee;
 
-    // Create booking
     const { data: inserted, error: insErr } = await service
       .from('bookings')
       .insert({

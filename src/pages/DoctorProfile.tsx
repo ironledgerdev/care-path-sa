@@ -82,27 +82,34 @@ const DoctorProfile = () => {
 
   const fetchDoctorProfile = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: doctorData, error: doctorError } = await supabase
         .from('doctors')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email,
-            phone
-          )
-        `)
+        .select('*')
         .eq('id', doctorId)
         .single();
 
-      if (error) throw error;
-      setDoctor(data as any);
+      if (doctorError) throw doctorError;
+
+      let enriched: any = doctorData;
+      if (doctorData?.user_id) {
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, email, phone')
+            .eq('id', doctorData.user_id)
+            .single();
+          enriched = { ...doctorData, profiles: profileData || null };
+        } catch (_) {
+          enriched = { ...doctorData, profiles: null };
+        }
+      }
+
+      setDoctor(enriched as any);
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to load doctor profile",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load doctor profile',
+        variant: 'destructive',
       });
       navigate('/search');
     } finally {

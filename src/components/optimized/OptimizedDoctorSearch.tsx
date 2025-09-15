@@ -215,32 +215,37 @@ const OptimizedDoctorSearch = memo(() => {
 
   const fetchDoctors = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data: doctorsData, error: doctorsError } = await supabase
         .from('doctors')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .order('rating', { ascending: false });
-      // Load all doctors so search returns complete results
 
-      if (error) throw error;
-      setDoctors((data || []) as any[]);
+      if (doctorsError) throw doctorsError;
+
+      let enriched = (doctorsData || []) as any[];
+      const userIds = enriched.map((d: any) => d.user_id).filter(Boolean);
+      if (userIds.length) {
+        try {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+          if (!profilesError && profilesData) {
+            const map = new Map(profilesData.map((p: any) => [p.id, p]));
+            enriched = enriched.map((d: any) => ({ ...d, profiles: map.get(d.user_id) || null }));
+          }
+        } catch (_) {}
+      }
+
+      setDoctors(enriched as any[]);
     } catch (error: any) {
-      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || "Failed to load doctors";
+      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || 'Failed to load doctors';
       try {
         console.error('Error fetching doctors (optimized):', error);
-      } catch (e) {
+      } catch (_) {
         console.error('Error fetching doctors (optimized, string):', String(error));
       }
-      toast({
-        title: "Error",
-        description: errMsg,
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: errMsg, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }

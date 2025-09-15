@@ -2,17 +2,29 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+let derivedUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+if (!derivedUrl && SUPABASE_PUBLISHABLE_KEY) {
+  try {
+    const parts = SUPABASE_PUBLISHABLE_KEY.split('.');
+    const payload = parts[1] ? JSON.parse(atob(parts[1])) : null;
+    const ref = payload?.ref || payload?.project_ref || payload?.projectRef;
+    if (typeof ref === 'string' && ref.length > 0) {
+      derivedUrl = `https://${ref}.supabase.co`;
+      console.warn('VITE_SUPABASE_URL missing; derived from anon key.');
+    }
+  } catch (_) {}
+}
+
+if (!derivedUrl || !SUPABASE_PUBLISHABLE_KEY) {
   console.warn('Supabase environment variables are missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
 }
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+export const SUPABASE_URL = derivedUrl as string;
+export { SUPABASE_PUBLISHABLE_KEY };
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY!, {
   auth: {
     storage: localStorage,
     persistSession: true,
