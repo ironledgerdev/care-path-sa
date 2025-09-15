@@ -219,10 +219,15 @@ const OptimizedDoctorSearch = memo(() => {
       if (error) throw error;
       setDoctors((data || []) as any[]);
     } catch (error: any) {
-      console.error('Error fetching doctors (optimized):', error);
+      const errMsg = (error && (error.message || error.details || error.hint || error.error)) || String(error) || "Failed to load doctors";
+      try {
+        console.error('Error fetching doctors (optimized):', error);
+      } catch (e) {
+        console.error('Error fetching doctors (optimized, string):', String(error));
+      }
       toast({
         title: "Error",
-        description: error?.message || "Failed to load doctors",
+        description: errMsg,
         variant: "destructive",
       });
     } finally {
