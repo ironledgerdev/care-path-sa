@@ -81,10 +81,20 @@ serve(async (req) => {
 
     // Determine frontend origin for return/cancel URLs
     const originHeader = req.headers.get("origin");
+    const refererHeader = req.headers.get("referer");
     const FRONTEND_BASE_URL = Deno.env.get("FRONTEND_BASE_URL") ?? "";
-    const frontendOrigin = originHeader || FRONTEND_BASE_URL;
+
+    let frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    if (!frontendOrigin && refererHeader) {
+      try {
+        frontendOrigin = new URL(refererHeader).origin;
+      } catch (_) {
+        // ignore parsing errors
+      }
+    }
+
     if (!frontendOrigin) {
-      throw new Error("FRONTEND_BASE_URL not configured and no Origin header present");
+      throw new Error("Unable to determine frontend origin. Set FRONTEND_BASE_URL env or ensure Origin/Referer header is sent.");
     }
 
     // PayFast payment data
@@ -132,8 +142,13 @@ serve(async (req) => {
 
     console.log("Payment data prepared:", finalPaymentData);
 
-    // Create payment URL for PayFast
-    const paymentUrl = `https://sandbox.payfast.co.za/eng/process?${Object.keys(finalPaymentData)
+    // Create payment URL for PayFast (sandbox or live based on env)
+    const PAYFAST_MODE = (Deno.env.get("PAYFAST_MODE") ?? "sandbox").toLowerCase();
+    const payfastBase = PAYFAST_MODE === "live"
+      ? "https://www.payfast.co.za/eng/process"
+      : "https://sandbox.payfast.co.za/eng/process";
+
+    const paymentUrl = `${payfastBase}?${Object.keys(finalPaymentData)
       .map(key => `${key}=${encodeURIComponent(finalPaymentData[key])}`)
       .join('&')}`;
 
