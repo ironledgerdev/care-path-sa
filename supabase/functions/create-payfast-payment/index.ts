@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { Md5 } from "https://deno.land/std@0.190.0/hash/md5.ts";
+import md5 from "https://esm.sh/blueimp-md5@2.19.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,9 +132,7 @@ serve(async (req) => {
       const stringToHash = passphrase
         ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}`
         : paramString;
-      const md5 = new Md5();
-      md5.update(stringToHash);
-      return md5.toString();
+      return md5(stringToHash);
     };
 
     // Add signature to payment data
