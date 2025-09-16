@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { Md5 } from "https://deno.land/std@0.190.0/hash/md5.ts";
+import md5 from "https://esm.sh/blueimp-md5@2.19.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface MembershipPaymentRequest {
@@ -48,10 +49,14 @@ serve(async (req) => {
     if (profileError || !profile) throw new Error("Failed to get user profile");
 
     const originHeader = req.headers.get("origin");
+    const refererHeader = req.headers.get("referer");
     const FRONTEND_BASE_URL = Deno.env.get("FRONTEND_BASE_URL") ?? "";
-    const frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    let frontendOrigin = originHeader || FRONTEND_BASE_URL;
+    if (!frontendOrigin && refererHeader) {
+      try { frontendOrigin = new URL(refererHeader).origin; } catch (_) {}
+    }
     if (!frontendOrigin) {
-      throw new Error("FRONTEND_BASE_URL not configured and no Origin header present");
+      throw new Error("Unable to determine frontend origin. Set FRONTEND_BASE_URL env or ensure Origin/Referer header is sent.");
     }
 
     const paymentData: Record<string, unknown> = {
@@ -78,15 +83,17 @@ serve(async (req) => {
         .map((key) => `${key}=${encodeURIComponent(String(data[key]))}`)
         .join('&');
       const stringToHash = passphrase ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}` : paramString;
-      const md5 = new Md5();
-      md5.update(stringToHash);
-      return md5.toString();
+      return md5(stringToHash);
     };
 
     const signature = generateSignature(paymentData, PASSPHRASE);
     const finalPaymentData = { ...paymentData, signature } as Record<string, string>;
 
-    const paymentUrl = `https://sandbox.payfast.co.za/eng/process?${Object.keys(finalPaymentData)
+    const PAYFAST_MODE = (Deno.env.get("PAYFAST_MODE") ?? "sandbox").toLowerCase();
+    const payfastBase = PAYFAST_MODE === "live"
+      ? "https://www.payfast.co.za/eng/process"
+      : "https://sandbox.payfast.co.za/eng/process";
+    const paymentUrl = `${payfastBase}?${Object.keys(finalPaymentData)
       .map((key) => `${key}=${encodeURIComponent(finalPaymentData[key])}`)
       .join('&')}`;
 

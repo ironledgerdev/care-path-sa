@@ -54,17 +54,23 @@ const BookingHistory = () => {
       const { data, error } = await supabase
         .from('bookings')
         .select(`
-          *,
+          id,
+          doctor_id,
+          appointment_date,
+          appointment_time,
+          status,
+          payment_status,
+          consultation_fee,
+          booking_fee,
+          total_amount,
+          patient_notes,
+          doctor_notes,
+          created_at,
           doctors (
             practice_name,
             speciality,
             city,
-            province,
-            profiles (
-              first_name,
-              last_name,
-              phone
-            )
+            province
           )
         `)
         .eq('user_id', user?.id)
@@ -234,7 +240,7 @@ const BookingHistory = () => {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-lg">
-                                  Dr. {booking.doctors?.profiles?.first_name || 'Unknown'} {booking.doctors?.profiles?.last_name || 'Doctor'}
+                                  {booking.doctors?.practice_name || 'Practice'}
                                 </h3>
                                 <p className="text-primary text-sm">{booking.doctors?.speciality}</p>
                               </div>
@@ -246,7 +252,7 @@ const BookingHistory = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Phone className="h-4 w-4" />
-                                <span>{booking.doctors?.profiles?.phone || 'Not provided'}</span>
+                                <span>Not provided</span>
                               </div>
                             </div>
                           </div>

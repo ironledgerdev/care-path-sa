@@ -41,8 +41,10 @@ const DoctorDashboard = () => {
   });
   const [activeDay, setActiveDay] = useState<number>(1); // default Monday
   const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
 
@@ -246,6 +248,31 @@ const DoctorDashboard = () => {
     }
   };
 
+  const fetchUpcomingAppointments = async () => {
+    if (!doctorInfo?.id) return;
+    setLoadingUpcoming(true);
+    try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      const { data, error } = await retry(() =>
+        supabase
+          .from('bookings')
+          .select('id, appointment_date, appointment_time, status, payment_status')
+          .eq('doctor_id', doctorInfo.id)
+          .gte('appointment_date', todayStr)
+          .neq('status', 'cancelled')
+          .order('appointment_date', { ascending: true })
+          .order('appointment_time', { ascending: true })
+      );
+      if (error) throw error;
+      setUpcomingBookings(data || []);
+    } catch (e: any) {
+      console.error('Failed to fetch upcoming appointments', e?.message || e);
+    } finally {
+      setLoadingUpcoming(false);
+    }
+  };
+
   const approveBooking = async (bookingId: string) => {
     try {
       const { error } = await supabase
@@ -289,11 +316,13 @@ const DoctorDashboard = () => {
     if (doctorInfo?.id) {
       loadSchedule();
       fetchPendingAppointments();
+      fetchUpcomingAppointments();
       fetchDoctorStats();
       const bookingsChannel = supabase
         .channel(`doctor-${doctorInfo.id}-bookings`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `doctor_id=eq.${doctorInfo.id}` }, () => {
           fetchPendingAppointments();
+          fetchUpcomingAppointments();
           fetchDoctorStats();
         })
         .subscribe();
@@ -408,36 +437,68 @@ const DoctorDashboard = () => {
           </TabsList>
 
           <TabsContent value="appointments">
-            <Card className="medical-hero-card">
-              <CardHeader>
-                <CardTitle>Pending Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingBookings ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
-                ) : pendingBookings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No pending appointments</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {pendingBookings.map((b) => (
-                      <div key={b.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{b.appointment_date} at {b.appointment_time}</div>
-                          {b.patient_notes && (<div className="text-sm text-muted-foreground">{b.patient_notes}</div>)}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="medical-hero-card">
+                <CardHeader>
+                  <CardTitle>Pending Appointments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingBookings ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  ) : pendingBookings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No pending appointments</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingBookings.map((b) => (
+                        <div key={b.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">{b.appointment_date} at {b.appointment_time}</div>
+                            {b.patient_notes && (<div className="text-sm text-muted-foreground">{b.patient_notes}</div>)}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => approveBooking(b.id)}>Approve</Button>
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => rejectBooking(b.id)}>Reject</Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => approveBooking(b.id)}>Approve</Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => rejectBooking(b.id)}>Reject</Button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="medical-hero-card">
+                <CardHeader>
+                  <CardTitle>Upcoming Appointments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingUpcoming ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  ) : upcomingBookings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No upcoming appointments</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingBookings.map((b) => (
+                        <div key={b.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">{b.appointment_date} at {b.appointment_time}</div>
+                            <div className="text-xs text-muted-foreground">Status: {b.status}</div>
+                          </div>
+                          <Badge variant={b.status === 'confirmed' ? 'default' : 'secondary'}>
+                            {b.status === 'confirmed' ? 'Booked' : b.status}
+                          </Badge>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="schedule">
