@@ -144,7 +144,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const params = new URLSearchParams(location.search);
   const showDebug = params.get('debug') === '1';
 
-  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; stats?: any; errors: string[] }>({ errors: [] });
+  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; recentBookings?: any; stats?: any; errors: string[] }>({ errors: [] });
 
   const fetchAdminData = async () => {
     setIsLoading(true);
