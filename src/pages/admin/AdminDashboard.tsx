@@ -90,6 +90,22 @@ interface UserMembership {
   } | null;
 }
 
+interface RecentBooking {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  doctors: {
+    id: string;
+    practice_name: string;
+    user_id: string;
+    profiles: {
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
+  } | null;
+}
+
 export const AdminDashboard: React.FC = () => {
   return (
     <AdminGuard>
@@ -101,6 +117,7 @@ export const AdminDashboard: React.FC = () => {
 export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth?: boolean }> = ({ overrideProfile, bypassAuth = false }) => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
   const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalDoctors: 0,
     pendingApplications: 0,
@@ -127,7 +144,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
   const params = new URLSearchParams(location.search);
   const showDebug = params.get('debug') === '1';
 
-  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; stats?: any; errors: string[] }>({ errors: [] });
+  const [debugInfo, setDebugInfo] = useState<{ pending?: any; memberships?: any; recentBookings?: any; stats?: any; errors: string[] }>({ errors: [] });
 
   const fetchAdminData = async () => {
     setIsLoading(true);
@@ -137,9 +154,10 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       const payload = data as any;
       if (payload?.pending) setPendingDoctors(payload.pending);
       if (payload?.memberships) setUserMemberships(payload.memberships);
+      if (payload?.recentBookings) setRecentBookings(payload.recentBookings);
       if (payload?.stats) setStats(payload.stats);
 
-      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
+      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, recentBookings: payload.recentBookings, stats: payload.stats }));
     } catch (error: any) {
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       // If running under local admin session, avoid direct DB calls that will fail under RLS
@@ -147,6 +165,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         await Promise.allSettled([
           fetchPendingDoctors(),
           fetchUserMemberships(),
+          fetchRecentBookings(),
           fetchDashboardStats(),
         ]);
       } else {
