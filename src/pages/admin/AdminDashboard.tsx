@@ -117,6 +117,7 @@ export const AdminDashboard: React.FC = () => {
 export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth?: boolean }> = ({ overrideProfile, bypassAuth = false }) => {
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
   const [userMemberships, setUserMemberships] = useState<UserMembership[]>([]);
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalDoctors: 0,
     pendingApplications: 0,
