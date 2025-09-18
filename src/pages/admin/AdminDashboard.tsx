@@ -154,9 +154,10 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
       const payload = data as any;
       if (payload?.pending) setPendingDoctors(payload.pending);
       if (payload?.memberships) setUserMemberships(payload.memberships);
+      if (payload?.recentBookings) setRecentBookings(payload.recentBookings);
       if (payload?.stats) setStats(payload.stats);
 
-      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, stats: payload.stats }));
+      setDebugInfo(prev => ({ ...prev, pending: payload.pending, memberships: payload.memberships, recentBookings: payload.recentBookings, stats: payload.stats }));
     } catch (error: any) {
       setDebugInfo(prev => ({ ...prev, errors: [...prev.errors, (error && error.message) || String(error)] }));
       // If running under local admin session, avoid direct DB calls that will fail under RLS
