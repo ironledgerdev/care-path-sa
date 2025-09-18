@@ -90,6 +90,22 @@ interface UserMembership {
   } | null;
 }
 
+interface RecentBooking {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  doctors: {
+    id: string;
+    practice_name: string;
+    user_id: string;
+    profiles: {
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
+  } | null;
+}
+
 export const AdminDashboard: React.FC = () => {
   return (
     <AdminGuard>
