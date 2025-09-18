@@ -165,6 +165,7 @@ export const AdminDashboardContent: React.FC<{ overrideProfile?: any; bypassAuth
         await Promise.allSettled([
           fetchPendingDoctors(),
           fetchUserMemberships(),
+          fetchRecentBookings(),
           fetchDashboardStats(),
         ]);
       } else {
