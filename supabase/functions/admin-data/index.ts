@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE');
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE');
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       return new Response(JSON.stringify({ error: 'Supabase service role not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -53,6 +53,29 @@ Deno.serve(async (req) => {
 
     const memberships = membershipsResp.data || [];
 
+    // Recent bookings with doctor info
+    const recentBookingsResp = await supabaseAdmin
+      .from('bookings')
+      .select(`
+        id,
+        appointment_date,
+        appointment_time,
+        status,
+        doctors (
+          id,
+          practice_name,
+          user_id,
+          profiles!doctors_user_id_fkey (
+            first_name,
+            last_name
+          )
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const recentBookings = recentBookingsResp.data || [];
+
     // Stats: counts and revenue
     const [doctorsResult, pendingResult, bookingsResult, usersResult, premiumResult] = await Promise.all([
       supabaseAdmin.from('doctors').select('id', { count: 'exact' }),
@@ -73,7 +96,7 @@ Deno.serve(async (req) => {
       premiumMembers: premiumResult.count || 0
     };
 
-    return new Response(JSON.stringify({ success: true, pending, memberships, stats }), {
+    return new Response(JSON.stringify({ success: true, pending, memberships, recentBookings, stats }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
