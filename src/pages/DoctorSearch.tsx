@@ -44,6 +44,9 @@ const DoctorSearch = () => {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [priceRange, setPriceRange] = useState('');
+  const [showMap, setShowMap] = useState(false);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
