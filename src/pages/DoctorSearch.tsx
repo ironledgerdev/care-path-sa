@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Stethoscope, Filter, Calendar, Clock, Star, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,9 +121,11 @@ const DoctorSearch = () => {
 
   const fetchDoctors = async () => {
     try {
+      // Only fetch doctors that have been approved (approved_at not null)
       const { data: doctorsData, error: doctorsError } = await supabase
         .from('doctors')
         .select('*')
+        .not('approved_at', 'is', null)
         .order('rating', { ascending: false });
 
       if (doctorsError) throw doctorsError;
@@ -326,6 +328,24 @@ const DoctorSearch = () => {
         </Card>
 
         {/* Results */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm text-muted-foreground">{filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="btn-medical-secondary" onClick={() => setShowMap((s) => !s)}>
+              {showMap ? 'Hide Map' : 'Show Map'}
+            </Button>
+          </div>
+        </div>
+
+        {showMap && (
+          <div className="mb-6">
+            <div id="doctor-map" style={{ height: 420 }} className="rounded-lg overflow-hidden" />
+            {!window.L && (
+              <p className="text-xs text-muted-foreground mt-2">Map is unavailable (failed to load map library).</p>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-6">
           {filteredDoctors.length === 0 ? (
             <Card className="medical-card">
