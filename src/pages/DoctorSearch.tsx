@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Stethoscope, Filter, Calendar, Clock, Star, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,9 @@ const DoctorSearch = () => {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [priceRange, setPriceRange] = useState('');
+  const [showMap, setShowMap] = useState(false);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -119,11 +122,92 @@ const DoctorSearch = () => {
     filterDoctors();
   }, [doctors, searchTerm, selectedProvince, selectedSpecialty, priceRange]);
 
+  // Initialize / update map when visible and when filteredDoctors change
+  useEffect(() => {
+    if (!showMap) return;
+    // Ensure Leaflet (loaded via CDN) is available
+    const L = (window as any).L;
+    if (!L) return;
+
+    // Create map if not present
+    if (!mapRef.current) {
+      try {
+        mapRef.current = L.map('doctor-map', { preferCanvas: true }).setView([-30.5595, 22.9375], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(mapRef.current);
+      } catch (e) {
+        console.error('Failed to initialize map', e);
+        return;
+      }
+    }
+
+    // Remove existing markers
+    try {
+      markersRef.current.forEach((m) => mapRef.current.removeLayer(m));
+    } catch (e) {}
+    markersRef.current = [];
+
+    // Helper: geocode with Nominatim (best-effort). Cache results in localStorage to reduce requests.
+    const geocode = async (doctor: any) => {
+      const cacheKey = `doc_coords_${doctor.id}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+      const q = encodeURIComponent(`${doctor.address || ''}, ${doctor.city || ''}, ${doctor.province || ''}, South Africa`);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length) {
+          const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          localStorage.setItem(cacheKey, JSON.stringify(coords));
+          // Nominatim policy: be gentle on requests
+          await new Promise((r) => setTimeout(r, 1100));
+          return coords;
+        }
+      } catch (e) {
+        console.error('Geocode failed for', doctor.id, e);
+      }
+      // Delay a bit even on failure to avoid rapid polling
+      await new Promise((r) => setTimeout(r, 500));
+      return null;
+    };
+
+    (async () => {
+      for (const doc of filteredDoctors) {
+        const coords = await geocode(doc);
+        if (coords) {
+          try {
+            const marker = L.marker([coords.lat, coords.lng]).addTo(mapRef.current);
+            marker.bindPopup(`<div style="min-width:160px"><strong>Dr. ${doc.profiles?.first_name || ''} ${doc.profiles?.last_name || ''}</strong><br/>${doc.practice_name || ''}<br/><a href=\"/doctor/${doc.id}\">View profile</a></div>`);
+            markersRef.current.push(marker);
+          } catch (e) {
+            console.error('Failed to add marker', e);
+          }
+        }
+      }
+
+      // Fit map to markers
+      try {
+        if (markersRef.current.length) {
+          const group = L.featureGroup(markersRef.current);
+          mapRef.current.fitBounds(group.getBounds().pad(0.2));
+        }
+      } catch (e) {}
+    })();
+
+    return () => {
+      // optionally keep map alive; just remove markers on hide
+    };
+  }, [showMap, filteredDoctors]);
+
   const fetchDoctors = async () => {
     try {
+      // Only fetch doctors that have been approved (approved_at not null)
       const { data: doctorsData, error: doctorsError } = await supabase
         .from('doctors')
         .select('*')
+        .not('approved_at', 'is', null)
         .order('rating', { ascending: false });
 
       if (doctorsError) throw doctorsError;
@@ -326,6 +410,24 @@ const DoctorSearch = () => {
         </Card>
 
         {/* Results */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm text-muted-foreground">{filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="btn-medical-secondary" onClick={() => setShowMap((s) => !s)}>
+              {showMap ? 'Hide Map' : 'Show Map'}
+            </Button>
+          </div>
+        </div>
+
+        {showMap && (
+          <div className="mb-6">
+            <div id="doctor-map" style={{ height: 420 }} className="rounded-lg overflow-hidden" />
+            {!window.L && (
+              <p className="text-xs text-muted-foreground mt-2">Map is unavailable (failed to load map library).</p>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-6">
           {filteredDoctors.length === 0 ? (
             <Card className="medical-card">
